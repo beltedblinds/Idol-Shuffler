@@ -1,164 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>K-Pop Idol Gallery</title>
-<style>
-body { font-family: 'Segoe UI', sans-serif; background:#111; color:#fff; display:flex; flex-direction:column; align-items:center; padding:30px; margin:0; }
-h2 { color:#ff4081; text-shadow:0 0 10px #ff4081; margin-bottom:20px; }
-.controls button { background:#ff4081; border:none; color:#fff; padding:12px 25px; border-radius:12px; font-size:18px; margin:5px; cursor:pointer; transition: all 0.3s; }
-.controls button:hover { background:#e73370; transform:scale(1.08); }
-.controls button:disabled { background:#555; cursor:not-allowed; }
-#previewContainer { width:700px; max-width:90%; height:500px; border-radius:20px; overflow:hidden; display:flex; justify-content:center; align-items:center; background:#222; margin-bottom:10px; position:relative; }
-iframe { width:100%; height:100%; border:none; border-radius:20px; opacity:0; position:absolute; transition:opacity 0.5s ease; }
-.activeFrame { opacity:1 !important; z-index:10 !important; }
-#savedImages { display:flex; flex-wrap:wrap; justify-content:center; max-width:700px; margin-top:15px; }
-.savedButton { width:40px; height:40px; margin:3px; border-radius:50%; border:2px solid #ff4081; background:#222; color:#ff4081; font-weight:bold; cursor:pointer; display:flex; justify-content:center; align-items:center; font-size:16px; }
-.savedButton:hover { background:#ff4081; color:#222; transform:scale(1.1); }
-.activeSaved { background:#ff4081; color:#222; box-shadow:0 0 10px #ff79a3; }
-input { padding:10px; border-radius:12px; font-size:16px; width:200px; }
-#suggestions { position:absolute; top:40px; left:0; width:200px; background:#222; border:1px solid #ff4081; border-radius:12px; max-height:150px; overflow-y:auto; display:none; z-index:100; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Idol Shuffler</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <h1>Idol Shuffler</h1>
 
-<h2>🔥 K-Pop Idol Gallery 🔥</h2>
+  <input type="text" id="searchBar" placeholder="Search by idol name">
 
-<div class="controls" style="flex-direction:column; align-items:center;">
-  <div style="position:relative;">
-    <input type="text" id="folderSearch" placeholder="Search subfolder..." oninput="showSuggestions(this.value)">
-    <div id="suggestions"></div>
-  </div>
-  <div style="margin-top:10px;">
-    <button id="searchBtn" onclick="searchFolder()">Search</button>
-    <button id="randomBtn" onclick="showRandom()" disabled>Random</button>
-    <button id="prevBtn" onclick="showPrevious()" disabled>Previous</button>
-    <button id="startCycleBtn" onclick="startCycle()" disabled>Start Cycle</button>
-    <button id="stopCycleBtn" onclick="stopCycle()" disabled>Stop Cycle</button>
-    <button id="resetIframesBtn" onclick="resetIframes()" disabled>Reset</button>
-  </div>
-</div>
+  <button id="shuffleBtn">Shuffle</button>
 
-<div id="previewContainer">
-  <button id="saveBtn" onclick="saveCurrentImage()" style="position:absolute; top:10px; left:10px;">💖</button>
-</div>
+  <div id="imageContainer"></div>
 
-<div id="savedImages"></div>
-
-<script>
-const CYCLE_INTERVAL = 6000;
-const PRELOAD_SIZE = 10;
-let files=[], lastIndex=-1, historyStack=[], savedFiles=[], autoCycleActive=false, preloadQueue=[], previousFrames=[], shownIndexes=new Set();
-
-const statusDiv=document.createElement("div"); statusDiv.textContent="Loading files..."; document.getElementById("previewContainer").appendChild(statusDiv);
-const previewContainer=document.getElementById("previewContainer");
-const savedImagesDiv=document.getElementById("savedImages");
-
-function enableButtons(){ ["randomBtn","prevBtn","startCycleBtn","stopCycleBtn","resetIframesBtn"].forEach(id=>document.getElementById(id).disabled=false); }
-function disableButtons(){ ["randomBtn","prevBtn","startCycleBtn","stopCycleBtn","resetIframesBtn"].forEach(id=>document.getElementById(id).disabled=true); }
-function hideStatus(){ statusDiv.style.display='none'; }
-
-// Load files from files.json
-async function loadFiles() {
-  disableButtons();
-  statusDiv.textContent="Loading files...";
-  try {
-    const res = await fetch("files.json");
-    files = await res.json();
-    if(!files.length){ statusDiv.textContent="No files found."; return; }
-    enableButtons();
-    lastIndex=Math.floor(Math.random()*files.length);
-    historyStack.push(lastIndex);
-    previousFrames.push(lastIndex);
-    shownIndexes.add(lastIndex);
-    displayFile(lastIndex);
-    hideStatus();
-    preloadNextBatch();
-  } catch(err){ statusDiv.textContent="Error loading files: "+err; }
-}
-
-function displayFile(index){
-  lastIndex=index;
-  historyStack.push(index);
-  previousFrames.push(index);
-  if(previousFrames.length>3) previousFrames.shift();
-  shownIndexes.add(index);
-
-  document.querySelectorAll("#previewContainer iframe").forEach(f=>f.classList.remove("activeFrame"));
-  let existing=document.querySelector("#previewContainer iframe[data-index='"+index+"']");
-  if(existing){ existing.classList.add("activeFrame"); return; }
-  const iframe=document.createElement("iframe");
-  iframe.src=files[index].url;
-  iframe.dataset.index=index;
-  previewContainer.appendChild(iframe);
-  iframe.onload=()=>{ iframe.classList.add("activeFrame"); };
-}
-
-// Random / Previous
-function showRandom(){
-  if(!files.length) return;
-  let nextIndex=preloadQueue.shift()?.index;
-  if(nextIndex===undefined){
-    let unseen=files.map((f,i)=>i).filter(i=>!shownIndexes.has(i));
-    if(!unseen.length){ shownIndexes.clear(); unseen=files.map((f,i)=>i); }
-    nextIndex=unseen[Math.floor(Math.random()*unseen.length)];
-  }
-  displayFile(nextIndex); preloadNextBatch();
-}
-function showPrevious(){ if(previousFrames.length<2) return; previousFrames.pop(); displayFile(previousFrames.pop()); }
-
-// Cycle
-function startCycle(){ stopCycle(); autoCycleActive=true; (function nextCycle(){ if(!autoCycleActive||!files.length) return; let nextPreload=preloadQueue.shift(); let idx=nextPreload?nextPreload.index:null; if(idx===null){ let unseen=files.map((f,i)=>i).filter(i=>!shownIndexes.has(i)); if(!unseen.length){ shownIndexes.clear(); unseen=files.map((f,i)=>i); } idx=unseen[Math.floor(Math.random()*unseen.length)]; } displayFile(idx,()=>{ if(autoCycleActive) setTimeout(nextCycle,CYCLE_INTERVAL); }); preloadNextBatch(); })(); }
-function stopCycle(){ autoCycleActive=false; }
-
-// Save
-function saveCurrentImage(){
-  if(lastIndex===-1) return;
-  const savedUrl=files[lastIndex].url;
-  if(savedFiles.some(f=>f.url===savedUrl)) return;
-  const btn=document.createElement("button"); btn.textContent=savedFiles.length+1; btn.className="savedButton";
-  btn.onclick=()=>{ displayFile(lastIndex); };
-  savedImagesDiv.appendChild(btn);
-  savedFiles.push({ url:savedUrl });
-}
-
-// Preload
-function preloadNextBatch(){
-  while(preloadQueue.length<PRELOAD_SIZE){
-    let unseen=files.map((f,i)=>i).filter(i=>i!==lastIndex&&!previousFrames.includes(i)&&!savedFiles.some(f=>f.url===files[i].url)&&!shownIndexes.has(i)&&!preloadQueue.some(p=>p.index===i));
-    if(!unseen.length) return;
-    const idx=unseen[Math.floor(Math.random()*unseen.length)];
-    const iframe=document.createElement("iframe"); iframe.src=files[idx].url; iframe.dataset.index=idx; previewContainer.appendChild(iframe);
-    preloadQueue.push({ index:idx, iframe:iframe });
-    if(preloadQueue.length>PRELOAD_SIZE){ const old=preloadQueue.shift(); if(old&&old.iframe) old.iframe.remove(); }
-  }
-}
-
-// Search
-function searchFolder(){
-  const folderName=document.getElementById('folderSearch').value.trim().toLowerCase();
-  disableButtons();
-  let filtered=files.filter(f=>f.folder.toLowerCase().includes(folderName));
-  if(!filtered.length){ alert("No files found in '"+folderName+"'"); return; }
-  files=filtered; lastIndex=Math.floor(Math.random()*files.length);
-  historyStack=[]; previousFrames=[]; shownIndexes=new Set();
-  historyStack.push(lastIndex); previousFrames.push(lastIndex); shownIndexes.add(lastIndex);
-  displayFile(lastIndex); preloadQueue=[]; preloadNextBatch(); enableButtons();
-}
-
-// Suggestions
-function showSuggestions(input){
-  const suggestionsDiv=document.getElementById('suggestions');
-  if(!input){ suggestionsDiv.style.display='none'; return; }
-  let names=[...new Set(files.map(f=>f.folder))].filter(n=>n.toLowerCase().includes(input.toLowerCase()));
-  suggestionsDiv.innerHTML="";
-  names.forEach(n=>{ const div=document.createElement("div"); div.textContent=n; div.style.padding="5px"; div.style.cursor="pointer"; div.onclick=()=>{ document.getElementById('folderSearch').value=n; suggestionsDiv.style.display='none'; }; suggestionsDiv.appendChild(div); });
-  suggestionsDiv.style.display=names.length?'block':'none';
-}
-
-document.addEventListener('keydown', e=>{ switch(e.key){ case"ArrowRight":showRandom();break; case"ArrowLeft":showPrevious();break; case"ArrowUp": autoCycleActive?stopCycle():startCycle();break; case"ArrowDown":saveCurrentImage();break; } });
-
-loadFiles();
-</script>
+  <script src="script.js"></script>
 </body>
 </html>
