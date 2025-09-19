@@ -1,0 +1,70 @@
+// Load all files from JSON instead of Drive
+async function loadFiles() {
+  disableButtons();
+  statusDiv.textContent = "Loading files...";
+  try {
+    const res = await fetch("files.json"); // JSON in same repo or absolute URL
+    files = await res.json();
+
+    if (!files.length) {
+      statusDiv.textContent = "No files found.";
+    } else {
+      enableButtons();
+      lastIndex = Math.floor(Math.random() * files.length);
+      historyStack.push(lastIndex);
+      previousFrames.push(lastIndex);
+      shownIndexes.add(lastIndex);
+      displayFile(lastIndex);
+      hideStatus();
+      preloadNextBatch();
+    }
+  } catch (err) {
+    statusDiv.textContent = "Error loading files: " + err;
+  }
+}
+
+// Load files by subfolder (search)
+async function searchFolder() {
+  const folderName = document.getElementById('folderSearch').value.trim().toLowerCase();
+  disableButtons();
+  statusDiv.textContent = "Loading files...";
+  const filtered = files.filter(f => f.folder.toLowerCase().includes(folderName));
+
+  if (!filtered.length) {
+    statusDiv.textContent = folderName ? `No files found in '${folderName}'` : "No files found.";
+  } else {
+    enableButtons();
+    lastIndex = Math.floor(Math.random() * filtered.length);
+    historyStack = [];
+    previousFrames = [];
+    shownIndexes = new Set();
+    historyStack.push(lastIndex);
+    previousFrames.push(lastIndex);
+    shownIndexes.add(lastIndex);
+    files = filtered;
+    displayFile(lastIndex);
+    hideStatus();
+    preloadQueue = [];
+    preloadNextBatch();
+  }
+}
+
+// Subfolder suggestions
+function showSuggestions(input) {
+  const suggestionsDiv = document.getElementById('suggestions');
+  if(!input) { suggestionsDiv.style.display='none'; return; }
+  const matches = [...new Set(files.map(f => f.folder))].filter(n => n.toLowerCase().includes(input.toLowerCase()));
+  suggestionsDiv.innerHTML = "";
+  matches.forEach(n=>{
+    const div = document.createElement('div');
+    div.textContent = n;
+    div.style.padding="5px";
+    div.style.cursor="pointer";
+    div.onclick = ()=> {
+      document.getElementById('folderSearch').value = n;
+      suggestionsDiv.style.display='none';
+    };
+    suggestionsDiv.appendChild(div);
+  });
+  suggestionsDiv.style.display = matches.length ? 'block':'none';
+}
