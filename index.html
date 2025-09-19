@@ -2,19 +2,67 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Idol Shuffler</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Idol Shuffler Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    #results img {
+      width: 150px;
+      margin: 5px;
+      border-radius: 8px;
+    }
+    #searchBar {
+      padding: 8px;
+      width: 300px;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+  </style>
 </head>
 <body>
-  <h1>Idol Shuffler</h1>
+  <h1>Idol Shuffler Test</h1>
+  <input type="text" id="searchBar" placeholder="Enter idol name..." />
+  <div id="results"></div>
 
-  <input type="text" id="searchBar" placeholder="Search by idol name">
+  <script>
+    let manifestData = [];
 
-  <button id="shuffleBtn">Shuffle</button>
+    // Load manifest.json
+    fetch('manifest.json')
+      .then(res => res.json())
+      .then(data => {
+        manifestData = data;
+      })
+      .catch(err => {
+        console.error("Failed to load manifest.json:", err);
+        document.getElementById('results').innerText = "Error loading manifest.json";
+      });
 
-  <div id="imageContainer"></div>
+    // Search function
+    const searchBar = document.getElementById('searchBar');
+    searchBar.addEventListener('input', () => {
+      const query = searchBar.value.trim().toLowerCase();
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '';
 
-  <script src="script.js"></script>
+      if(query === '') return;
+
+      const filtered = manifestData.filter(item => item.path.toLowerCase().includes(query));
+
+      if(filtered.length === 0) {
+        resultsDiv.innerText = "No results found.";
+        return;
+      }
+
+      filtered.forEach(item => {
+        const img = document.createElement('img');
+        img.src = item.path;
+        resultsDiv.appendChild(img);
+      });
+    });
+  </script>
 </body>
 </html>
