@@ -1,66 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Idol Shuffler</title>
-<style>
-  body { font-family: Arial, sans-serif; padding: 20px; }
-  #search { margin-bottom: 20px; padding: 5px; width: 300px; }
-  #imageContainer img { max-width: 200px; margin: 5px; display: block; }
-  #shuffleBtn { margin-top: 10px; padding: 5px 10px; }
-</style>
+  <meta charset="UTF-8">
+  <title>Idols Media Test</title>
+  <style>
+    #imageContainer img {
+      max-width: 150px;
+      margin: 5px;
+      border: 1px solid #ccc;
+    }
+    #debug {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #000;
+      height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      background: #f9f9f9;
+    }
+  </style>
 </head>
 <body>
+  <h1>Idols Media Test</h1>
+  <input type="text" id="search" placeholder="Search idol..." />
+  <div id="imageContainer"></div>
+  <div id="debug"></div>
 
-<h1>Idol Shuffler</h1>
+  <script>
+    const debugEl = document.getElementById('debug');
 
-<input type="text" id="search" placeholder="Search an idol name..." />
-<button id="shuffleBtn">Shuffle</button>
-<div id="imageContainer"></div>
+    function logDebug(message) {
+      const p = document.createElement('p');
+      p.textContent = message;
+      debugEl.appendChild(p);
+      debugEl.scrollTop = debugEl.scrollHeight; // scroll to bottom
+      console.log(message);
+    }
 
-<script>
-let manifest = [];
-let filteredImages = [];
+    let manifest = [];
+    let filteredImages = [];
 
-// Load manifest.json from your repo
-fetch('idols-media-01/manifest.json')
-  .then(response => response.json())
-  .then(data => {
-    manifest = data;
-    filteredImages = manifest;
-    displayImages();
-  })
-  .catch(err => {
-    console.error('Failed to load manifest:', err);
-    document.getElementById('imageContainer').textContent = 'Failed to load manifest.';
-  });
+    // Load the manifest.json
+    fetch('manifest.json')
+      .then(res => res.json())
+      .then(data => {
+        manifest = data;
+        filteredImages = manifest;
+        displayImages();
+        logDebug(`Manifest loaded: ${manifest.length} entries`);
+      })
+      .catch(err => logDebug(`Failed to load manifest.json: ${err}`));
 
-// Search functionality
-document.getElementById('search').addEventListener('input', (e) => {
-  const query = e.target.value.toLowerCase();
-  filteredImages = manifest.filter(item => item.path.toLowerCase().includes(query));
-  displayImages();
-});
+    // Search input
+    document.getElementById('search').addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      filteredImages = manifest.filter(item => item.path.toLowerCase().includes(query));
+      displayImages();
+      logDebug(`Search query: "${query}" — ${filteredImages.length} matches`);
+    });
 
-// Shuffle functionality
-document.getElementById('shuffleBtn').addEventListener('click', () => {
-  if (filteredImages.length === 0) return;
-  const randomIndex = Math.floor(Math.random() * filteredImages.length);
-  displayImages([filteredImages[randomIndex]]);
-});
+    // Display images
+    function displayImages(images = filteredImages) {
+      const container = document.getElementById('imageContainer');
+      container.innerHTML = '';
 
-// Display images
-function displayImages(images = filteredImages) {
-  const container = document.getElementById('imageContainer');
-  container.innerHTML = '';
-  images.forEach(img => {
-    const imageEl = document.createElement('img');
-    imageEl.src = img.path;
-    container.appendChild(imageEl);
-  });
-}
-</script>
+      images.forEach(img => {
+        const imageEl = document.createElement('img');
+        imageEl.src = img.path;
 
+        imageEl.onerror = () => logDebug(`Failed to load: ${img.path}`);
+        imageEl.onload = () => logDebug(`Loaded: ${img.path}`);
+
+        container.appendChild(imageEl);
+      });
+
+      if (images.length === 0) logDebug('No images to display');
+    }
+  </script>
 </body>
 </html>
