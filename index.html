@@ -1,68 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Idol Shuffler Test</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background-color: #f9f9f9;
-    }
-    #results img {
-      width: 150px;
-      margin: 5px;
-      border-radius: 8px;
-    }
-    #searchBar {
-      padding: 8px;
-      width: 300px;
-      font-size: 16px;
-      margin-bottom: 20px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Idol Shuffler</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  #search { margin-bottom: 20px; padding: 5px; width: 300px; }
+  #imageContainer img { max-width: 200px; margin: 5px; display: block; }
+  #shuffleBtn { margin-top: 10px; padding: 5px 10px; }
+</style>
 </head>
 <body>
-  <h1>Idol Shuffler Test</h1>
-  <input type="text" id="searchBar" placeholder="Enter idol name..." />
-  <div id="results"></div>
 
-  <script>
-    let manifestData = [];
+<h1>Idol Shuffler</h1>
 
-    // Load manifest.json
-    fetch('manifest.json')
-      .then(res => res.json())
-      .then(data => {
-        manifestData = data;
-      })
-      .catch(err => {
-        console.error("Failed to load manifest.json:", err);
-        document.getElementById('results').innerText = "Error loading manifest.json";
-      });
+<input type="text" id="search" placeholder="Search an idol name..." />
+<button id="shuffleBtn">Shuffle</button>
+<div id="imageContainer"></div>
 
-    // Search function
-    const searchBar = document.getElementById('searchBar');
-    searchBar.addEventListener('input', () => {
-      const query = searchBar.value.trim().toLowerCase();
-      const resultsDiv = document.getElementById('results');
-      resultsDiv.innerHTML = '';
+<script>
+let manifest = [];
+let filteredImages = [];
 
-      if(query === '') return;
+// Load manifest.json from your repo
+fetch('idols-media-01/manifest.json')
+  .then(response => response.json())
+  .then(data => {
+    manifest = data;
+    filteredImages = manifest;
+    displayImages();
+  })
+  .catch(err => {
+    console.error('Failed to load manifest:', err);
+    document.getElementById('imageContainer').textContent = 'Failed to load manifest.';
+  });
 
-      const filtered = manifestData.filter(item => item.path.toLowerCase().includes(query));
+// Search functionality
+document.getElementById('search').addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase();
+  filteredImages = manifest.filter(item => item.path.toLowerCase().includes(query));
+  displayImages();
+});
 
-      if(filtered.length === 0) {
-        resultsDiv.innerText = "No results found.";
-        return;
-      }
+// Shuffle functionality
+document.getElementById('shuffleBtn').addEventListener('click', () => {
+  if (filteredImages.length === 0) return;
+  const randomIndex = Math.floor(Math.random() * filteredImages.length);
+  displayImages([filteredImages[randomIndex]]);
+});
 
-      filtered.forEach(item => {
-        const img = document.createElement('img');
-        img.src = item.path;
-        resultsDiv.appendChild(img);
-      });
-    });
-  </script>
+// Display images
+function displayImages(images = filteredImages) {
+  const container = document.getElementById('imageContainer');
+  container.innerHTML = '';
+  images.forEach(img => {
+    const imageEl = document.createElement('img');
+    imageEl.src = img.path;
+    container.appendChild(imageEl);
+  });
+}
+</script>
+
 </body>
 </html>
