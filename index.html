@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Idol Gallery Shuffler</title>
+  <style>
+    body {
+      background: #111;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 { margin-bottom: 10px; }
+    button {
+      background: #444;
+      border: none;
+      padding: 10px 20px;
+      color: #fff;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    button:hover { background: #666; }
+    img {
+      max-width: 90%;
+      max-height: 80vh;
+      margin-top: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(255,255,255,0.2);
+    }
+  </style>
+</head>
+<body>
+  <h1>🎴 Idol Gallery Shuffler</h1>
+  <p id="currentName"></p>
+  <button id="shuffleBtn">Shuffle Image</button>
+  <br>
+  <img id="idolImage" src="" alt="Idol Image" hidden>
+
+  <script>
+    const fileUrl = "https://raw.githubusercontent.com/beltedblinds/idols-media-01/main/idol_gallery_links.txt";
+    let entries = [];
+
+    async function loadImages() {
+      const res = await fetch(fileUrl);
+      const text = await res.text();
+      entries = text.trim().split('\n').map(line => {
+        const parts = line.split(' | ');
+        return { name: parts[0], url: parts[1] };
+      });
+      console.log(`Loaded ${entries.length} images.`);
+      showRandomImage();
+    }
+
+    function showRandomImage() {
+      if (entries.length === 0) return;
+      const random = entries[Math.floor(Math.random() * entries.length)];
+      const img = document.getElementById('idolImage');
+      img.src = random.url;
+      img.hidden = false;
+      document.getElementById('currentName').textContent = random.name;
+    }
+
+    document.getElementById('shuffleBtn').addEventListener('click', showRandomImage);
+
+    loadImages();
+  </script>
+</body>
+</html>
