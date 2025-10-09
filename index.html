@@ -40,12 +40,16 @@
 
   .search-container {
     position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin-bottom: 20px;
-    width: 320px;
+    width: 340px;
+    max-width: 95vw;
   }
 
   #searchInput {
-    width: 100%;
+    flex: 1;
     padding: 10px 14px;
     border-radius: 8px;
     border: 1px solid #333;
@@ -59,9 +63,26 @@
     border-color: var(--accent);
   }
 
+  #searchBtn {
+    background: var(--card);
+    border: 1px solid #333;
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+  }
+
+  #searchBtn:hover {
+    background: #272727;
+    border-color: var(--accent);
+    color: var(--accent-hover);
+  }
+
   #suggestions {
     position: absolute;
-    top: 42px;
+    top: 44px;
     left: 0;
     right: 0;
     background: #1a1a1a;
@@ -222,13 +243,13 @@
 
 <div class="search-container">
   <input id="searchInput" placeholder="Search folder..." />
+  <button id="searchBtn">🔍 Search</button>
   <div id="suggestions" hidden></div>
 </div>
 
 <div class="controls">
   <button class="btn" id="prevBtn">Previous</button>
   <button class="btn" id="randomBtn">Random</button>
-
   <div class="toggle" id="cycleToggle"><span id="cycleLabel">Cycle Off</span></div>
   <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
 </div>
@@ -265,6 +286,7 @@ const saveBtn = document.getElementById("saveBtn");
 const savedModeToggle = document.getElementById("savedModeToggle");
 const savedModeLabel = document.getElementById("savedModeLabel");
 const searchInput = document.getElementById("searchInput");
+const searchBtn = document.getElementById("searchBtn");
 const suggestionsEl = document.getElementById("suggestions");
 
 function parseCatalogText(text) {
@@ -438,6 +460,10 @@ prevBtn.onclick = showPrevious;
 cycleToggle.onclick = toggleCycle;
 savedModeToggle.onclick = toggleSavedMode;
 saveBtn.onclick = saveCurrent;
+searchBtn.onclick = () => {
+  const folder = searchInput.value.trim();
+  if (folder) selectFolder(folder);
+};
 
 searchInput.addEventListener("input", e => handleSearch(e.target.value));
 searchInput.addEventListener("keydown", e => {
