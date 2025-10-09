@@ -6,107 +6,151 @@
   <title>Idol Gallery Shuffler</title>
   <style>
     body {
-      background-color: #0b0b0b;
+      background-color: #111;
       color: #fff;
       font-family: Arial, sans-serif;
       text-align: center;
       margin: 0;
-      padding: 0;
+      padding: 20px;
     }
-    h1 {
-      margin-top: 20px;
-      font-size: 1.8em;
+    #controls {
+      margin-bottom: 20px;
     }
-    img {
-      max-width: 90%;
-      max-height: 80vh;
-      margin: 20px auto;
-      border-radius: 12px;
-      box-shadow: 0 0 12px rgba(255,255,255,0.2);
-    }
-    button {
-      background-color: #1e90ff;
-      color: white;
+    button, label {
+      background: #222;
+      color: #fff;
       border: none;
-      padding: 12px 20px;
-      font-size: 1rem;
-      border-radius: 8px;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 6px;
       cursor: pointer;
-      margin: 10px;
-      transition: background-color 0.2s;
+      font-size: 16px;
     }
-    button:hover {
-      background-color: #006ad1;
+    button:hover, label:hover {
+      background: #333;
     }
-    #idolName {
-      font-size: 1.4em;
-      margin-bottom: 15px;
+    #image-container {
+      position: relative;
+      display: inline-block;
+      max-width: 90vw;
+      max-height: 80vh;
+    }
+    #current-image {
+      max-width: 100%;
+      max-height: 80vh;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.2);
+    }
+    #save-btn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.6);
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      padding: 5px 10px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    #saved-images {
+      margin-top: 30px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+    .saved-thumb {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .saved-thumb:hover {
+      transform: scale(1.1);
     }
   </style>
 </head>
 <body>
-  <h1>🎵 Idol Gallery Shuffler 🎵</h1>
-  <div id="idolName">Loading...</div>
-  <img id="idolImage" src="" alt="Idol Image" />
-  <div>
-    <button id="prevBtn">⏪ Prev</button>
-    <button id="shuffleBtn">🔀 Shuffle</button>
-    <button id="nextBtn">⏩ Next</button>
+  <h1>🎵 Idol Gallery Shuffler</h1>
+
+  <div id="controls">
+    <button id="prev-btn">Previous</button>
+    <button id="random-btn">Random</button>
+
+    <label>
+      <input type="checkbox" id="cycle-toggle">
+      Cycle On
+    </label>
   </div>
 
+  <div id="image-container">
+    <button id="save-btn" title="Save this image">💾</button>
+    <img id="current-image" src="" alt="Idol Image">
+  </div>
+
+  <div id="saved-images"></div>
+
   <script>
-    const FILE_URL = 'https://raw.githubusercontent.com/beltedblinds/idols-media-01/main/idol_gallery_links.txt';
+    const txtFileUrl = "https://raw.githubusercontent.com/YOUR_USERNAME/Idol-Shuffler/main/idol_gallery_links.txt";
     let images = [];
     let currentIndex = 0;
+    let cycleInterval = null;
 
     async function loadImages() {
-      try {
-        const response = await fetch(FILE_URL);
-        const text = await response.text();
-        images = text
-          .split('\n')
-          .map(line => line.trim())
-          .filter(line => line && line.includes(','))
-          .map(line => {
-            const [folder, url] = line.split(',');
-            return { folder, url };
-          });
-        shuffleImages();
-        displayImage();
-      } catch (err) {
-        document.getElementById('idolName').textContent = '⚠️ Failed to load image list';
-        console.error('Error loading list:', err);
+      const res = await fetch(txtFileUrl);
+      const text = await res.text();
+      images = text
+        .split("\n")
+        .map(line => line.trim())
+        .filter(line => line.startsWith("http"));
+      showRandomImage();
+    }
+
+    function showImage(index) {
+      if (images.length === 0) return;
+      currentIndex = (index + images.length) % images.length;
+      document.getElementById("current-image").src = images[currentIndex];
+    }
+
+    function showRandomImage() {
+      currentIndex = Math.floor(Math.random() * images.length);
+      showImage(currentIndex);
+    }
+
+    function showPreviousImage() {
+      showImage(currentIndex - 1);
+    }
+
+    function toggleCycle() {
+      const toggle = document.getElementById("cycle-toggle");
+      if (toggle.checked) {
+        cycleInterval = setInterval(showRandomImage, 7000);
+      } else {
+        clearInterval(cycleInterval);
       }
     }
 
-    function shuffleImages() {
-      images.sort(() => Math.random() - 0.5);
-      currentIndex = 0;
-    }
+    function saveCurrentImage() {
+      const url = images[currentIndex];
+      const savedContainer = document.getElementById("saved-images");
 
-    function displayImage() {
-      if (images.length === 0) return;
-      const { folder, url } = images[currentIndex];
-      const nameDiv = document.getElementById('idolName');
-      const img = document.getElementById('idolImage');
-      nameDiv.textContent = folder;
+      const img = document.createElement("img");
       img.src = url;
+      img.classList.add("saved-thumb");
+      img.addEventListener("click", () => {
+        document.getElementById("current-image").src = url;
+      });
+
+      savedContainer.appendChild(img);
     }
 
-    document.getElementById('shuffleBtn').addEventListener('click', () => {
-      shuffleImages();
-      displayImage();
-    });
-
-    document.getElementById('nextBtn').addEventListener('click', () => {
-      currentIndex = (currentIndex + 1) % images.length;
-      displayImage();
-    });
-
-    document.getElementById('prevBtn').addEventListener('click', () => {
-      currentIndex = (currentIndex - 1 + images.length) % images.length;
-      displayImage();
-    });
+    document.getElementById("random-btn").addEventListener("click", showRandomImage);
+    document.getElementById("prev-btn").addEventListener("click", showPreviousImage);
+    document.getElementById("cycle-toggle").addEventListener("change", toggleCycle);
+    document.getElementById("save-btn").addEventListener("click", saveCurrentImage);
 
     loadImages();
   </script>
