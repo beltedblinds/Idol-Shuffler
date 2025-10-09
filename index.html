@@ -91,7 +91,9 @@
       justify-content:center;
       cursor:pointer;
       font-size:16px;
+      transition:background 0.15s;
     }
+    #saveBtn.saved { color: var(--accent); background:rgba(30,144,255,0.2); }
     #saveBtn:hover{ background:rgba(30,144,255,0.16); color:var(--accent); }
 
     /* Saved thumbnails */
@@ -149,14 +151,18 @@
     <button class="btn" id="prevBtn">Previous</button>
     <button class="btn" id="randomBtn">Random</button>
 
-    <div class="toggle btn" id="cycleToggle" title="Toggle auto cycle">
+    <div class="toggle btn" id="cycleToggle">
       <span id="cycleLabel">Cycle Off</span>
+    </div>
+
+    <div class="toggle btn" id="savedModeToggle">
+      <span id="savedModeLabel">Saved Mode: Off</span>
     </div>
   </div>
 
   <!-- Image area -->
   <div class="image-wrapper" id="imageWrapper">
-    <button id="saveBtn" title="Save shortcut">💾</button>
+    <button id="saveBtn" title="Save/Unsave image">💾</button>
     <img id="idolImage" src="" alt="Idol" />
   </div>
 
@@ -166,30 +172,18 @@
   <div id="savedList"></div>
 
 <script>
-/*
-  Behavior:
-  - Loads idol_gallery_links.txt from your idols repo (raw GitHub URL)
-  - Each line expected: FolderName,https://raw.githubusercontent.com/.../path/to/file.webp
-  - Buttons above (Previous, Random, Cycle On/Off)
-  - Save icon (top-left) adds a numbered shortcut below; clicking a saved shortcut shows that image.
-  - Saved shortcuts persist in localStorage.
-*/
-
 const TXT_URL = "https://raw.githubusercontent.com/beltedblinds/idols-media-01/main/idol_gallery_links.txt";
 
-// in-memory loaded list: array of {folder, url}
 let catalog = [];
-
-// history of shown URLs (chronological)
 let history = [];
 let historyPos = -1;
 
-// cycle interval id
 let cycleId = null;
 const CYCLE_MS = 7000;
 
-// saved shortcuts (persisted): array of {url, folder}
 let saved = [];
+let savedMode = false;
+let savedIndex = 0;
 
 /* DOM */
 const imgEl = document.getElementById("idolImage");
@@ -200,31 +194,28 @@ const prevBtn = document.getElementById("prevBtn");
 const cycleToggle = document.getElementById("cycleToggle");
 const cycleLabel = document.getElementById("cycleLabel");
 const saveBtn = document.getElementById("saveBtn");
+const savedModeToggle = document.getElementById("savedModeToggle");
+const savedModeLabel = document.getElementById("savedModeLabel");
 
-/* Utilities */
 function parseCatalogText(text){
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-  const items = [];
-  for(const line of lines){
+  return lines.map(line => {
     const idx = line.indexOf(",");
-    if(idx === -1) continue;
+    if(idx === -1) return null;
     const folder = line.slice(0, idx).trim();
-    let url = line.slice(idx+1).trim();
-    // If file URL starts with ./ or contains duplicate ./ fix it
-    url = url.replace(/\/\.\//g, "/").replace(/\/\.\//g,"/");
-    items.push({folder, url});
-  }
-  return items;
+    let url = line.slice(idx+1).trim().replace(/\/\.\//g, "/");
+    return { folder, url };
+  }).filter(Boolean);
 }
 
-/* Display functions */
 function displayUrl(url, folder, pushHistory=true){
   if(!url) return;
   imgEl.src = url;
   labelEl.textContent = folder || "";
+  saveBtn.classList.toggle("saved", !!saved.find(s => s.url === url));
+
   if(pushHistory){
-    // If last history entry equals this url, don't duplicate
-    if(history.length === 0 || history[history.length - 1] !== url){
+    if(history.length === 0 || history[history.length-1] !== url){
       history.push(url);
       historyPos = history.length - 1;
     } else {
@@ -234,52 +225,63 @@ function displayUrl(url, folder, pushHistory=true){
 }
 
 function showRandom(){
-  if(catalog.length === 0) return;
-  const i = Math.floor(Math.random() * catalog.length);
-  displayUrl(catalog[i].url, catalog[i].folder, true);
+  if(savedMode){
+    if(saved.length === 0) return;
+    savedIndex = Math.floor(Math.random() * saved.length);
+    displayUrl(saved[savedIndex].url, saved[savedIndex].folder, true);
+  } else {
+    if(catalog.length === 0) return;
+    const i = Math.floor(Math.random() * catalog.length);
+    displayUrl(catalog[i].url, catalog[i].folder, true);
+  }
 }
 
 function showPrevious(){
-  if(historyPos > 0){
-    historyPos--;
-    const url = history[historyPos];
-    // find folder name in catalog if possible
-    const found = catalog.find(it => it.url === url);
-    displayUrl(url, found ? found.folder : "", false); // don't push new history on back
+  if(savedMode){
+    if(saved.length === 0) return;
+    savedIndex = (savedIndex - 1 + saved.length) % saved.length;
+    displayUrl(saved[savedIndex].url, saved[savedIndex].folder, true);
   } else {
-    // fallback: if no history, show a random
-    // (or wrap around if you prefer)
-    if(catalog.length > 0){
-      displayUrl(catalog[0].url, catalog[0].folder, true);
+    if(historyPos > 0){
+      historyPos--;
+      const url = history[historyPos];
+      const found = catalog.find(it => it.url === url);
+      displayUrl(url, found ? found.folder : "", false);
     }
   }
 }
 
-/* Cycle control */
+function showNextSaved(){
+  if(saved.length === 0) return;
+  savedIndex = (savedIndex + 1) % saved.length;
+  displayUrl(saved[savedIndex].url, saved[savedIndex].folder, true);
+}
+
 function startCycle(){
   if(cycleId) clearInterval(cycleId);
-  cycleId = setInterval(() => {
-    showRandom();
-  }, CYCLE_MS);
+  cycleId = setInterval(() => showRandom(), CYCLE_MS);
   cycleLabel.textContent = "Cycle On";
 }
 
 function stopCycle(){
-  if(cycleId) { clearInterval(cycleId); cycleId = null; }
+  if(cycleId) clearInterval(cycleId);
+  cycleId = null;
   cycleLabel.textContent = "Cycle Off";
 }
 
 function toggleCycle(){
-  if(cycleId) stopCycle();
-  else startCycle();
+  if(cycleId) stopCycle(); else startCycle();
 }
 
-/* Saved shortcuts (localStorage) */
+function toggleSavedMode(){
+  savedMode = !savedMode;
+  savedModeLabel.textContent = "Saved Mode: " + (savedMode ? "On" : "Off");
+}
+
 function loadSaved(){
   try{
-    const raw = localStorage.getItem("idol_shuffler_saved_v1");
-    saved = raw ? JSON.parse(raw) : [];
-  }catch(e){ saved = []; }
+    saved = JSON.parse(localStorage.getItem("idol_shuffler_saved_v1")) || [];
+  }catch{ saved = []; }
   renderSaved();
 }
 function persistSaved(){
@@ -290,69 +292,84 @@ function renderSaved(){
   saved.forEach((it, idx) => {
     const wrap = document.createElement("div");
     wrap.className = "saved-item";
-    wrap.title = (it.folder || "") + " — " + (idx+1);
     const thumb = document.createElement("img");
     thumb.src = it.url;
-    thumb.alt = it.folder || "";
     wrap.appendChild(thumb);
-
     const badge = document.createElement("div");
     badge.className = "saved-badge";
-    badge.textContent = (idx+1);
+    badge.textContent = idx+1;
     wrap.appendChild(badge);
-
     wrap.addEventListener("click", () => {
-      // show this saved image and push to history
+      savedIndex = idx;
       displayUrl(it.url, it.folder, true);
     });
-
     savedListEl.appendChild(wrap);
   });
 }
 
-/* Save current */
 function saveCurrent(){
   const curUrl = imgEl.src;
   if(!curUrl) return;
-  // avoid duplicate saves: check by url
-  if(saved.find(s => s.url === curUrl)) return;
-  // folder lookup
   const found = catalog.find(it => it.url === curUrl);
-  const obj = { url: curUrl, folder: found ? found.folder : "" };
-  saved.push(obj);
+  const existingIndex = saved.findIndex(s => s.url === curUrl);
+  if(existingIndex !== -1){
+    // unsave
+    saved.splice(existingIndex, 1);
+  } else {
+    saved.push({ url: curUrl, folder: found ? found.folder : "" });
+  }
   persistSaved();
   renderSaved();
+  saveBtn.classList.toggle("saved", existingIndex === -1);
 }
 
-/* Load catalog from text file */
 async function loadCatalog(){
   try{
     const r = await fetch(TXT_URL, { cache: "no-cache" });
-    if(!r.ok) throw new Error("Failed to fetch: " + r.status);
     const txt = await r.text();
     catalog = parseCatalogText(txt);
     if(catalog.length === 0){
-      labelEl.textContent = "No images found in the list.";
+      labelEl.textContent = "No images found.";
       return;
     }
-    // initial image
     showRandom();
-  }catch(err){
-    labelEl.textContent = "Error loading list";
-    console.error(err);
+  }catch(e){
+    labelEl.textContent = "Error loading list.";
+    console.error(e);
   }
 }
 
-/* Event bindings */
-randomBtn.addEventListener("click", () => { showRandom(); });
-prevBtn.addEventListener("click", () => { showPrevious(); });
-cycleToggle.addEventListener("click", () => { toggleCycle(); });
-saveBtn.addEventListener("click", () => { saveCurrent(); });
+/* Events */
+randomBtn.addEventListener("click", showRandom);
+prevBtn.addEventListener("click", showPrevious);
+cycleToggle.addEventListener("click", toggleCycle);
+savedModeToggle.addEventListener("click", toggleSavedMode);
+saveBtn.addEventListener("click", saveCurrent);
+
+window.addEventListener("keydown", (e) => {
+  switch(e.key){
+    case "ArrowLeft":
+      e.preventDefault();
+      if(savedMode) showPrevious(); else showPrevious();
+      break;
+    case "ArrowRight":
+      e.preventDefault();
+      if(savedMode) showNextSaved(); else showRandom();
+      break;
+    case "ArrowDown":
+      e.preventDefault();
+      saveCurrent();
+      break;
+    case "ArrowUp":
+      e.preventDefault();
+      toggleSavedMode();
+      break;
+  }
+});
 
 /* Init */
 loadSaved();
 loadCatalog();
-
 </script>
 </body>
 </html>
