@@ -437,10 +437,15 @@ function showSuggestions(matches, term) {
 }
 
 function selectFolder(folder) {
-  filteredCatalog = catalog.filter(it => it.folder === folder);
-  showRandom();
+  const match = folder.trim().toLowerCase();
+  filteredCatalog = catalog.filter(it => it.folder.toLowerCase() === match);
+  if (!filteredCatalog.length) {
+    // Try partial match fallback
+    filteredCatalog = catalog.filter(it => it.folder.toLowerCase().includes(match));
+  }
   suggestionsEl.hidden = true;
   searchInput.value = folder;
+  showRandom();
 }
 
 async function loadCatalog() {
@@ -460,19 +465,16 @@ prevBtn.onclick = showPrevious;
 cycleToggle.onclick = toggleCycle;
 savedModeToggle.onclick = toggleSavedMode;
 saveBtn.onclick = saveCurrent;
-searchBtn.onclick = () => {
-  const folder = searchInput.value.trim();
-  if (folder) selectFolder(folder);
-};
+searchBtn.onclick = () => selectFolder(searchInput.value);
 
 searchInput.addEventListener("input", e => handleSearch(e.target.value));
 searchInput.addEventListener("keydown", e => {
   if (e.key === "Enter") {
     e.preventDefault();
-    const folder = searchInput.value.trim();
-    if (folder) selectFolder(folder);
+    selectFolder(searchInput.value);
   }
 });
+
 document.addEventListener("click", e => {
   if (!document.querySelector(".search-container").contains(e.target)) {
     suggestionsEl.hidden = true;
@@ -485,7 +487,6 @@ window.addEventListener("keydown", e => {
     case "ArrowRight": e.preventDefault(); savedMode ? showNextSaved() : showRandom(); break;
     case "ArrowDown": e.preventDefault(); saveCurrent(); break;
     case "ArrowUp": e.preventDefault(); toggleSavedMode(); break;
-    case " ": e.preventDefault(); toggleCycle(); break;
   }
 });
 
