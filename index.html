@@ -1,148 +1,358 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Idol Gallery Shuffler</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #0e0e0e;
-      color: #f0f0f0;
-      margin: 0;
-      padding: 0;
+    :root{
+      --bg:#0b0b0b; --card:#121212; --muted:#bbb;
+      --accent:#1e90ff;
     }
-    .controls {
-      margin: 20px 0;
+    body{
+      margin:0;
+      font-family:system-ui,Segoe UI,Roboto,Arial;
+      background:var(--bg);
+      color:#fff;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      min-height:100vh;
+      padding:18px;
+      box-sizing:border-box;
     }
-    button, .toggle {
-      background-color: #1e1e1e;
-      color: #fff;
-      border: 1px solid #444;
-      border-radius: 6px;
-      padding: 10px 15px;
-      margin: 5px;
-      cursor: pointer;
-      font-size: 14px;
+
+    h1{ margin:6px 0 14px 0; font-size:20px; font-weight:600; }
+
+    /* Controls above the image */
+    .controls{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin-bottom:14px;
+      flex-wrap:wrap;
     }
-    button:hover, .toggle:hover {
-      background-color: #333;
+    .btn{
+      background:var(--card);
+      color:#fff;
+      border:1px solid #252525;
+      padding:8px 12px;
+      border-radius:8px;
+      cursor:pointer;
+      font-size:14px;
     }
-    .image-container {
-      position: relative;
-      display: inline-block;
+    .btn:hover{ background:#1a1a1a; }
+
+    /* Toggle style */
+    .toggle {
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:var(--card);
+      font-size:13px;
+      cursor:pointer;
+      user-select:none;
     }
-    .save-icon {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(0, 0, 0, 0.5);
-      border-radius: 50%;
-      padding: 5px;
-      cursor: pointer;
-      font-size: 18px;
+
+    /* Image container */
+    .image-wrapper{
+      position:relative;
+      max-width:92vw;
+      max-height:78vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
-    img {
-      max-width: 90vw;
-      max-height: 80vh;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    #idolImage{
+      max-width:100%;
+      max-height:78vh;
+      border-radius:10px;
+      box-shadow:0 8px 30px rgba(0,0,0,0.6);
+      background:#111;
+      display:block;
     }
-    #savedImages {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-top: 20px;
-      gap: 10px;
+
+    /* Save icon (top-left of image) */
+    #saveBtn{
+      position:absolute;
+      top:10px;
+      left:10px;
+      z-index:3;
+      background:rgba(0,0,0,0.45);
+      border:1px solid rgba(255,255,255,0.06);
+      color:#fff;
+      width:36px;
+      height:36px;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      font-size:16px;
     }
-    #savedImages img {
-      width: 120px;
-      border-radius: 6px;
-      border: 1px solid #333;
+    #saveBtn:hover{ background:rgba(30,144,255,0.16); color:var(--accent); }
+
+    /* Saved thumbnails */
+    #savedList{
+      margin-top:18px;
+      width:100%;
+      max-width:920px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      justify-content:center;
+    }
+    .saved-item{
+      position:relative;
+      width:96px;
+      height:96px;
+      border-radius:8px;
+      overflow:hidden;
+      cursor:pointer;
+      border:1px solid #222;
+      background:#111;
+      display:inline-block;
+    }
+    .saved-item img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .saved-badge{
+      position:absolute;
+      top:6px;
+      left:6px;
+      background:rgba(0,0,0,0.6);
+      padding:2px 6px;
+      font-size:12px;
+      border-radius:999px;
+      color:#fff;
+    }
+
+    /* small label under image (folder) */
+    #label {
+      margin-top:10px;
+      color:var(--muted);
+      font-size:14px;
+      min-height:18px;
+    }
+
+    @media (max-width:520px){
+      .btn{ padding:8px; font-size:13px; }
+      .saved-item{ width:72px; height:72px; }
     }
   </style>
 </head>
 <body>
-  <h1>🎶 Idol Gallery Shuffler</h1>
-  
-  <div class="controls">
-    <button id="prevBtn">⬅️ Previous</button>
-    <button id="randomBtn">🔀 Random</button>
-    <button id="nextBtn">➡️ Next</button>
-    <button id="cycleBtn">⏸️ Cycle Off</button>
+  <h1>🎴 Idol Gallery Shuffler</h1>
+
+  <!-- Controls (above the image) -->
+  <div class="controls" id="controls">
+    <button class="btn" id="prevBtn">Previous</button>
+    <button class="btn" id="randomBtn">Random</button>
+
+    <div class="toggle btn" id="cycleToggle" title="Toggle auto cycle">
+      <span id="cycleLabel">Cycle Off</span>
+    </div>
   </div>
 
-  <div class="image-container">
-    <div class="save-icon" id="saveBtn">💾</div>
-    <img id="idolImage" src="" alt="Idol Image">
+  <!-- Image area -->
+  <div class="image-wrapper" id="imageWrapper">
+    <button id="saveBtn" title="Save shortcut">💾</button>
+    <img id="idolImage" src="" alt="Idol" />
   </div>
 
-  <div id="savedImages"></div>
+  <div id="label"></div>
 
-  <script>
-    const txtFileUrl = "https://raw.githubusercontent.com/beltedblinds/idols-media-01/main/idol_gallery_links.txt";
+  <!-- Saved shortcuts -->
+  <div id="savedList"></div>
 
-    let imageList = [];
-    let currentIndex = 0;
-    let cycleInterval = null;
-    let isCycling = false;
-    const imageElement = document.getElementById("idolImage");
-    const savedImagesContainer = document.getElementById("savedImages");
+<script>
+/*
+  Behavior:
+  - Loads idol_gallery_links.txt from your idols repo (raw GitHub URL)
+  - Each line expected: FolderName,https://raw.githubusercontent.com/.../path/to/file.webp
+  - Buttons above (Previous, Random, Cycle On/Off)
+  - Save icon (top-left) adds a numbered shortcut below; clicking a saved shortcut shows that image.
+  - Saved shortcuts persist in localStorage.
+*/
 
-    async function fetchImageList() {
-      const res = await fetch(txtFileUrl);
-      const text = await res.text();
-      imageList = text.split("\n").filter(line => line.includes("http"));
-      showRandomImage();
+const TXT_URL = "https://raw.githubusercontent.com/beltedblinds/idols-media-01/main/idol_gallery_links.txt";
+
+// in-memory loaded list: array of {folder, url}
+let catalog = [];
+
+// history of shown URLs (chronological)
+let history = [];
+let historyPos = -1;
+
+// cycle interval id
+let cycleId = null;
+const CYCLE_MS = 7000;
+
+// saved shortcuts (persisted): array of {url, folder}
+let saved = [];
+
+/* DOM */
+const imgEl = document.getElementById("idolImage");
+const labelEl = document.getElementById("label");
+const savedListEl = document.getElementById("savedList");
+const randomBtn = document.getElementById("randomBtn");
+const prevBtn = document.getElementById("prevBtn");
+const cycleToggle = document.getElementById("cycleToggle");
+const cycleLabel = document.getElementById("cycleLabel");
+const saveBtn = document.getElementById("saveBtn");
+
+/* Utilities */
+function parseCatalogText(text){
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  const items = [];
+  for(const line of lines){
+    const idx = line.indexOf(",");
+    if(idx === -1) continue;
+    const folder = line.slice(0, idx).trim();
+    let url = line.slice(idx+1).trim();
+    // If file URL starts with ./ or contains duplicate ./ fix it
+    url = url.replace(/\/\.\//g, "/").replace(/\/\.\//g,"/");
+    items.push({folder, url});
+  }
+  return items;
+}
+
+/* Display functions */
+function displayUrl(url, folder, pushHistory=true){
+  if(!url) return;
+  imgEl.src = url;
+  labelEl.textContent = folder || "";
+  if(pushHistory){
+    // If last history entry equals this url, don't duplicate
+    if(history.length === 0 || history[history.length - 1] !== url){
+      history.push(url);
+      historyPos = history.length - 1;
+    } else {
+      historyPos = history.length - 1;
     }
+  }
+}
 
-    function showImage(index) {
-      if (imageList.length === 0) return;
-      currentIndex = (index + imageList.length) % imageList.length;
-      const parts = imageList[currentIndex].split(",");
-      imageElement.src = parts[1].trim();
+function showRandom(){
+  if(catalog.length === 0) return;
+  const i = Math.floor(Math.random() * catalog.length);
+  displayUrl(catalog[i].url, catalog[i].folder, true);
+}
+
+function showPrevious(){
+  if(historyPos > 0){
+    historyPos--;
+    const url = history[historyPos];
+    // find folder name in catalog if possible
+    const found = catalog.find(it => it.url === url);
+    displayUrl(url, found ? found.folder : "", false); // don't push new history on back
+  } else {
+    // fallback: if no history, show a random
+    // (or wrap around if you prefer)
+    if(catalog.length > 0){
+      displayUrl(catalog[0].url, catalog[0].folder, true);
     }
+  }
+}
 
-    function showRandomImage() {
-      const randomIndex = Math.floor(Math.random() * imageList.length);
-      showImage(randomIndex);
+/* Cycle control */
+function startCycle(){
+  if(cycleId) clearInterval(cycleId);
+  cycleId = setInterval(() => {
+    showRandom();
+  }, CYCLE_MS);
+  cycleLabel.textContent = "Cycle On";
+}
+
+function stopCycle(){
+  if(cycleId) { clearInterval(cycleId); cycleId = null; }
+  cycleLabel.textContent = "Cycle Off";
+}
+
+function toggleCycle(){
+  if(cycleId) stopCycle();
+  else startCycle();
+}
+
+/* Saved shortcuts (localStorage) */
+function loadSaved(){
+  try{
+    const raw = localStorage.getItem("idol_shuffler_saved_v1");
+    saved = raw ? JSON.parse(raw) : [];
+  }catch(e){ saved = []; }
+  renderSaved();
+}
+function persistSaved(){
+  localStorage.setItem("idol_shuffler_saved_v1", JSON.stringify(saved));
+}
+function renderSaved(){
+  savedListEl.innerHTML = "";
+  saved.forEach((it, idx) => {
+    const wrap = document.createElement("div");
+    wrap.className = "saved-item";
+    wrap.title = (it.folder || "") + " — " + (idx+1);
+    const thumb = document.createElement("img");
+    thumb.src = it.url;
+    thumb.alt = it.folder || "";
+    wrap.appendChild(thumb);
+
+    const badge = document.createElement("div");
+    badge.className = "saved-badge";
+    badge.textContent = (idx+1);
+    wrap.appendChild(badge);
+
+    wrap.addEventListener("click", () => {
+      // show this saved image and push to history
+      displayUrl(it.url, it.folder, true);
+    });
+
+    savedListEl.appendChild(wrap);
+  });
+}
+
+/* Save current */
+function saveCurrent(){
+  const curUrl = imgEl.src;
+  if(!curUrl) return;
+  // avoid duplicate saves: check by url
+  if(saved.find(s => s.url === curUrl)) return;
+  // folder lookup
+  const found = catalog.find(it => it.url === curUrl);
+  const obj = { url: curUrl, folder: found ? found.folder : "" };
+  saved.push(obj);
+  persistSaved();
+  renderSaved();
+}
+
+/* Load catalog from text file */
+async function loadCatalog(){
+  try{
+    const r = await fetch(TXT_URL, { cache: "no-cache" });
+    if(!r.ok) throw new Error("Failed to fetch: " + r.status);
+    const txt = await r.text();
+    catalog = parseCatalogText(txt);
+    if(catalog.length === 0){
+      labelEl.textContent = "No images found in the list.";
+      return;
     }
+    // initial image
+    showRandom();
+  }catch(err){
+    labelEl.textContent = "Error loading list";
+    console.error(err);
+  }
+}
 
-    function nextImage() {
-      showImage(currentIndex + 1);
-    }
+/* Event bindings */
+randomBtn.addEventListener("click", () => { showRandom(); });
+prevBtn.addEventListener("click", () => { showPrevious(); });
+cycleToggle.addEventListener("click", () => { toggleCycle(); });
+saveBtn.addEventListener("click", () => { saveCurrent(); });
 
-    function prevImage() {
-      showImage(currentIndex - 1);
-    }
+/* Init */
+loadSaved();
+loadCatalog();
 
-    function toggleCycle() {
-      const btn = document.getElementById("cycleBtn");
-      if (isCycling) {
-        clearInterval(cycleInterval);
-        isCycling = false;
-        btn.textContent = "⏸️ Cycle Off";
-      } else {
-        isCycling = true;
-        btn.textContent = "▶️ Cycle On";
-        cycleInterval = setInterval(nextImage, 7000);
-      }
-    }
-
-    function saveCurrentImage() {
-      const img = document.createElement("img");
-      img.src = imageElement.src;
-      savedImagesContainer.appendChild(img);
-    }
-
-    document.getElementById("randomBtn").addEventListener("click", showRandomImage);
-    document.getElementById("nextBtn").addEventListener("click", nextImage);
-    document.getElementById("prevBtn").addEventListener("click", prevImage);
-    document.getElementById("cycleBtn").addEventListener("click", toggleCycle);
-    document.getElementById("saveBtn").addEventListener("click", saveCurrentImage);
-
-    fetchImageList();
-  </script>
+</script>
 </body>
 </html>
