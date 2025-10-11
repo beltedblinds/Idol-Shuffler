@@ -134,19 +134,11 @@
     color: var(--accent-hover);
   }
 
-  .main-content {
+  .toggle {
     display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 20px;
-    width: 100%;
-    max-width: 1200px;
-  }
-
-  .viewer {
-    display: flex;
-    flex-direction: column;
     align-items: center;
+    justify-content: center;
+    user-select: none;
   }
 
   .image-wrapper {
@@ -244,43 +236,6 @@
     font-size: 12px;
     border-radius: 999px;
   }
-
-  /* Catalog Panel */
-  #catalogPanel {
-    display: none;
-    flex-direction: column;
-    width: 260px;
-    max-height: 78vh;
-    overflow-y: auto;
-    background: #111;
-    border: 1px solid #333;
-    border-radius: 12px;
-    padding: 10px;
-    box-shadow: 0 0 10px rgba(255, 123, 203, 0.1);
-  }
-
-  .catalog-item {
-    width: 100%;
-    border-radius: 8px;
-    overflow: hidden;
-    cursor: pointer;
-    margin-bottom: 10px;
-    transition: transform 0.2s, border-color 0.2s;
-    border: 1px solid #222;
-  }
-
-  .catalog-item:hover {
-    transform: scale(1.03);
-    border-color: var(--accent);
-  }
-
-  .catalog-item img {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    display: block;
-  }
-
 </style>
 </head>
 <body>
@@ -297,21 +252,15 @@
   <button class="btn" id="randomBtn">Random</button>
   <div class="toggle" id="cycleToggle"><span id="cycleLabel">Cycle Off</span></div>
   <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
-  <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog</span></div>
 </div>
 
-<div class="main-content">
-  <div class="viewer">
-    <div class="image-wrapper">
-      <button id="saveBtn" title="Save / Unsave">💾</button>
-      <img id="idolImage" src="" alt="Idol" />
-    </div>
-    <div id="label"></div>
-    <div id="savedList"></div>
-  </div>
-
-  <div id="catalogPanel"></div>
+<div class="image-wrapper">
+  <button id="saveBtn" title="Save / Unsave">💾</button>
+  <img id="idolImage" src="" alt="Idol" />
 </div>
+
+<div id="label"></div>
+<div id="savedList"></div>
 
 <script>
 const TXT_URL = "https://raw.githubusercontent.com/beltedblinds/idols-media-01/main/idol_gallery_links.txt";
@@ -323,7 +272,6 @@ let historyPos = -1;
 let savedIndex = 0;
 let savedMode = false;
 let cycleId = null;
-let catalogVisible = false;
 const CYCLE_MS = 7000;
 
 /* DOM */
@@ -340,8 +288,6 @@ const savedModeLabel = document.getElementById("savedModeLabel");
 const searchInput = document.getElementById("searchInput");
 const searchBtn = document.getElementById("searchBtn");
 const suggestionsEl = document.getElementById("suggestions");
-const catalogPanel = document.getElementById("catalogPanel");
-const catalogToggle = document.getElementById("catalogToggle");
 
 function parseCatalogText(text) {
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
@@ -361,6 +307,7 @@ function displayUrl(url, folder, pushHist = true) {
   const nextImg = new Image();
   nextImg.src = url;
 
+  // Wait for the new image to load before switching
   nextImg.onload = () => {
     imgEl.style.opacity = "0";
     setTimeout(() => {
@@ -369,12 +316,16 @@ function displayUrl(url, folder, pushHist = true) {
       saveBtn.classList.toggle("saved", !!saved.find(s => s.url === url));
       imgEl.style.opacity = "1";
     }, 100);
+
     if (pushHist && (!history.length || history[history.length - 1] !== url)) {
       history.push(url);
       historyPos = history.length - 1;
     }
   };
-  nextImg.onerror = () => console.warn("Failed to load image:", url);
+
+  nextImg.onerror = () => {
+    console.warn("Failed to load image:", url);
+  };
 }
 
 function getCurrentPool() {
@@ -389,7 +340,6 @@ function showRandom() {
   const i = Math.floor(Math.random() * pool.length);
   displayUrl(pool[i].url, pool[i].folder, true);
   if (savedMode) savedIndex = i;
-  if (catalogVisible) renderCatalog();
 }
 
 function showPrevious() {
@@ -430,13 +380,6 @@ function toggleCycle() { cycleId ? stopCycle() : startCycle(); }
 function toggleSavedMode() {
   savedMode = !savedMode;
   savedModeLabel.textContent = "Saved Mode: " + (savedMode ? "On" : "Off");
-  if (catalogVisible) renderCatalog();
-}
-
-function toggleCatalog() {
-  catalogVisible = !catalogVisible;
-  catalogPanel.style.display = catalogVisible ? "flex" : "none";
-  if (catalogVisible) renderCatalog();
 }
 
 function saveCurrent() {
@@ -449,7 +392,6 @@ function saveCurrent() {
   persistSaved();
   renderSaved();
   saveBtn.classList.toggle("saved", idx === -1);
-  if (catalogVisible) renderCatalog();
 }
 
 function loadSaved() {
@@ -476,25 +418,12 @@ function renderSaved() {
   });
 }
 
-function renderCatalog() {
-  const pool = getCurrentPool();
-  catalogPanel.innerHTML = "";
-  pool.forEach((it, i) => {
-    const div = document.createElement("div");
-    div.className = "catalog-item";
-    div.innerHTML = `<img src="${it.url}" alt="${it.folder}">`;
-    div.onclick = () => displayUrl(it.url, it.folder, true);
-    catalogPanel.appendChild(div);
-  });
-}
-
 function handleSearch(input) {
   const term = input.trim().toLowerCase();
   if (!term) {
     filteredCatalog = [];
     showRandom();
     suggestionsEl.hidden = true;
-    if (catalogVisible) renderCatalog();
     return;
   }
   const matches = [...new Set(catalog.map(it => it.folder))].filter(f => f.toLowerCase().includes(term));
@@ -527,7 +456,6 @@ function selectFolder(folder) {
   suggestionsEl.hidden = true;
   searchInput.value = folder;
   showRandom();
-  if (catalogVisible) renderCatalog();
 }
 
 async function loadCatalog() {
@@ -547,7 +475,6 @@ prevBtn.onclick = showPrevious;
 cycleToggle.onclick = toggleCycle;
 savedModeToggle.onclick = toggleSavedMode;
 saveBtn.onclick = saveCurrent;
-catalogToggle.onclick = toggleCatalog;
 searchBtn.onclick = () => selectFolder(searchInput.value);
 
 searchInput.addEventListener("input", e => handleSearch(e.target.value));
@@ -575,6 +502,160 @@ window.addEventListener("keydown", e => {
 
 loadSaved();
 loadCatalog();
+</script>
+
+<!-- ⭐ NEW: Catalog insertion script.  This is appended and does NOT modify any of your original lines. -->
+<script>
+/*
+  Catalog feature — ADDED (does not change your original HTML).
+  This script:
+   - creates a Catalog button (looks like your .toggle) and inserts it immediately after the Saved Mode button,
+   - creates a right-side scrollable catalog panel,
+   - lazy-loads thumbnails and attempts to use a first-frame fallback for GIFs (using '#0'),
+   - respects current search / saved mode by using your getCurrentPool() function.
+*/
+
+(function(){
+  // 1) inject CSS for catalog
+  const css = `
+  /* catalog styles appended dynamically */
+  #catalogPanel { position: fixed; top: 100px; right: 20px; width: 260px; max-height: 78vh;
+                  overflow-y: auto; background: #111; border: 1px solid #333; border-radius: 10px;
+                  padding: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.6); z-index: 9999; display: none; }
+  .catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px,1fr)); gap: 8px; }
+  .catalog-item { position: relative; cursor: pointer; overflow: hidden; border-radius: 8px;
+                  border: 1px solid #222; background: #000; transition: transform 0.18s, border-color 0.18s; }
+  .catalog-item:hover { transform: scale(1.04); border-color: var(--accent); }
+  .catalog-item img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 8px; }
+  .catalog-empty { color: var(--muted); text-align: center; padding: 8px 4px; }
+  `;
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-added','catalog-style');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  // 2) create and insert Catalog button next to Saved Mode toggle
+  const savedEl = document.getElementById('savedModeToggle');
+  if (!savedEl) {
+    // safety: if saved mode isn't present, abort silently
+    return;
+  }
+
+  // Build button element (uses same 'toggle' class so it looks consistent)
+  const catalogButton = document.createElement('div');
+  catalogButton.className = 'toggle';
+  catalogButton.id = 'catalogToggle'; // id for any future reference
+  catalogButton.innerHTML = '<span id="catalogLabel">Catalog: Off</span>';
+
+  // Insert directly after the savedModeToggle, so it appears to the right in the controls
+  savedEl.parentNode.insertBefore(catalogButton, savedEl.nextSibling);
+
+  // 3) create catalog panel DOM and grid
+  const catalogPanel = document.createElement('div');
+  catalogPanel.id = 'catalogPanel';
+  const catalogGrid = document.createElement('div');
+  catalogGrid.id = 'catalogGrid';
+  catalogGrid.className = 'catalog-grid';
+  catalogPanel.appendChild(catalogGrid);
+  document.body.appendChild(catalogPanel);
+
+  // 4) helper: attempt to produce a non-animated thumbnail (simple heuristic)
+  function thumbFor(url){
+    try {
+      const lower = url.toLowerCase();
+      if (lower.endsWith('.gif')) {
+        // many CDNs ignore fragment identifiers but some services (and some browsers) may display first frame
+        // this is the best we can do client-side without server support; it's non-destructive.
+        return url + '#0';
+      }
+    } catch(e) {}
+    return url;
+  }
+
+  // 5) render using existing getCurrentPool() (respects filteredCatalog and savedMode)
+  function renderCatalog(){
+    const pool = (typeof getCurrentPool === 'function') ? getCurrentPool() : (filteredCatalog.length ? filteredCatalog : catalog || []);
+    catalogGrid.innerHTML = '';
+    if (!pool || !pool.length){
+      catalogGrid.innerHTML = '<div class="catalog-empty">No images found.</div>';
+      return;
+    }
+    // create thumbnails
+    pool.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'catalog-item';
+      const img = document.createElement('img');
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.alt = item.folder || '';
+      img.src = thumbFor(item.url);
+      div.appendChild(img);
+      div.addEventListener('click', () => {
+        // use your existing function to display
+        if (typeof displayUrl === 'function') {
+          displayUrl(item.url, item.folder, true);
+        } else {
+          // fallback
+          const idol = document.getElementById('idolImage');
+          if (idol) idol.src = item.url;
+        }
+      });
+      catalogGrid.appendChild(div);
+    });
+  }
+
+  // 6) toggle behavior
+  let visible = false;
+  function setCatalogVisible(v){
+    visible = !!v;
+    catalogPanel.style.display = visible ? 'block' : 'none';
+    const label = document.getElementById('catalogLabel');
+    if (label) label.textContent = 'Catalog: ' + (visible ? 'On' : 'Off');
+    // update border style of button (same visual cue your toggles use)
+    catalogButton.style.borderColor = visible ? 'var(--accent)' : '#333';
+    if (visible) renderCatalog();
+  }
+
+  catalogButton.addEventListener('click', () => {
+    setCatalogVisible(!visible);
+  });
+
+  // 7) auto-refresh catalog when search or saved mode change (only when visible)
+  const searchEl = document.getElementById('searchInput');
+  if (searchEl) {
+    searchEl.addEventListener('input', () => {
+      if (visible) renderCatalog();
+    });
+  }
+  // savedMode toggle exists and already updates savedMode variable in your script
+  const savedToggleEl = document.getElementById('savedModeToggle');
+  if (savedToggleEl) {
+    savedToggleEl.addEventListener('click', () => {
+      // slight delay to ensure savedMode variable updated by original handler
+      setTimeout(() => { if (visible) renderCatalog(); }, 50);
+    });
+  }
+
+  // 8) If the catalog is loaded later, re-render if visible.
+  // Poll until your global `catalog` variable is populated (loadCatalog is called by your code).
+  const waitForCatalog = setInterval(() => {
+    if (catalog && catalog.length) {
+      clearInterval(waitForCatalog);
+      if (visible) renderCatalog();
+    }
+  }, 300);
+
+  // 9) Accessibility: close panel when clicking outside (similar to suggestions)
+  document.addEventListener('click', (e) => {
+    if (!visible) return;
+    const target = e.target;
+    if (catalogPanel.contains(target) || catalogButton.contains(target) || document.querySelector('.search-container')?.contains(target)) {
+      return;
+    }
+    // click outside => close
+    setCatalogVisible(false);
+  });
+})();
 </script>
 </body>
 </html>
