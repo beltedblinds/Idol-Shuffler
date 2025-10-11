@@ -236,6 +236,53 @@
     font-size: 12px;
     border-radius: 999px;
   }
+
+  /* --- CATALOG FEATURE --- */
+  .catalog-container {
+    position: fixed;
+    right: 20px;
+    top: 100px;
+    bottom: 20px;
+    width: 260px;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 10px;
+    overflow-y: auto;
+    display: none;
+    flex-direction: column;
+    box-shadow: 0 0 15px rgba(0,0,0,0.6);
+    z-index: 15;
+  }
+
+  .catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+  }
+
+  .catalog-item {
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid #222;
+    background: #000;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+
+  .catalog-item:hover {
+    transform: scale(1.05);
+    border-color: var(--accent);
+  }
+
+  .catalog-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 8px;
+  }
 </style>
 </head>
 <body>
@@ -252,6 +299,8 @@
   <button class="btn" id="randomBtn">Random</button>
   <div class="toggle" id="cycleToggle"><span id="cycleLabel">Cycle Off</span></div>
   <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
+  <!-- --- Catalog Toggle Button --- -->
+  <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog: Off</span></div>
 </div>
 
 <div class="image-wrapper">
@@ -261,6 +310,11 @@
 
 <div id="label"></div>
 <div id="savedList"></div>
+
+<!-- --- Catalog Panel --- -->
+<div class="catalog-container" id="catalogContainer">
+  <div class="catalog-grid" id="catalogGrid"></div>
+</div>
 
 <script>
 const TXT_URL = "https://raw.githubusercontent.com/beltedblinds/idols-media-01/main/idol_gallery_links.txt";
@@ -289,6 +343,13 @@ const searchInput = document.getElementById("searchInput");
 const searchBtn = document.getElementById("searchBtn");
 const suggestionsEl = document.getElementById("suggestions");
 
+/* --- Catalog Feature Elements --- */
+const catalogToggle = document.getElementById("catalogToggle");
+const catalogLabel = document.getElementById("catalogLabel");
+const catalogContainer = document.getElementById("catalogContainer");
+const catalogGrid = document.getElementById("catalogGrid");
+let catalogVisible = false;
+
 function parseCatalogText(text) {
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
   const entries = lines.map(line => {
@@ -303,11 +364,8 @@ function parseCatalogText(text) {
 
 function displayUrl(url, folder, pushHist = true) {
   if (!url) return;
-
   const nextImg = new Image();
   nextImg.src = url;
-
-  // Wait for the new image to load before switching
   nextImg.onload = () => {
     imgEl.style.opacity = "0";
     setTimeout(() => {
@@ -316,16 +374,12 @@ function displayUrl(url, folder, pushHist = true) {
       saveBtn.classList.toggle("saved", !!saved.find(s => s.url === url));
       imgEl.style.opacity = "1";
     }, 100);
-
     if (pushHist && (!history.length || history[history.length - 1] !== url)) {
       history.push(url);
       historyPos = history.length - 1;
     }
   };
-
-  nextImg.onerror = () => {
-    console.warn("Failed to load image:", url);
-  };
+  nextImg.onerror = () => console.warn("Failed to load image:", url);
 }
 
 function getCurrentPool() {
@@ -334,6 +388,39 @@ function getCurrentPool() {
   return catalog;
 }
 
+/* --- Catalog Rendering --- */
+function toggleCatalog() {
+  catalogVisible = !catalogVisible;
+  catalogLabel.textContent = `Catalog: ${catalogVisible ? "On" : "Off"}`;
+  catalogContainer.style.display = catalogVisible ? "flex" : "none";
+  if (catalogVisible) renderCatalog();
+}
+
+function renderCatalog() {
+  const pool = getCurrentPool();
+  catalogGrid.innerHTML = "";
+  if (!pool.length) {
+    catalogGrid.innerHTML = `<div style="color:var(--muted);text-align:center;">No images found.</div>`;
+    return;
+  }
+  pool.forEach(it => {
+    const div = document.createElement("div");
+    div.className = "catalog-item";
+    const img = document.createElement("img");
+    img.loading = "lazy";
+    img.src = it.url.endsWith(".gif") ? it.url + "[0]" : it.url;
+    img.alt = it.folder;
+    div.appendChild(img);
+    div.onclick = () => displayUrl(it.url, it.folder, true);
+    catalogGrid.appendChild(div);
+  });
+}
+
+function refreshCatalog() {
+  if (catalogVisible) renderCatalog();
+}
+
+/* --- Original Functions Continue --- */
 function showRandom() {
   const pool = getCurrentPool();
   if (!pool.length) return;
@@ -380,6 +467,7 @@ function toggleCycle() { cycleId ? stopCycle() : startCycle(); }
 function toggleSavedMode() {
   savedMode = !savedMode;
   savedModeLabel.textContent = "Saved Mode: " + (savedMode ? "On" : "Off");
+  refreshCatalog();
 }
 
 function saveCurrent() {
@@ -424,6 +512,7 @@ function handleSearch(input) {
     filteredCatalog = [];
     showRandom();
     suggestionsEl.hidden = true;
+    refreshCatalog();
     return;
   }
   const matches = [...new Set(catalog.map(it => it.folder))].filter(f => f.toLowerCase().includes(term));
@@ -456,6 +545,7 @@ function selectFolder(folder) {
   suggestionsEl.hidden = true;
   searchInput.value = folder;
   showRandom();
+  refreshCatalog();
 }
 
 async function loadCatalog() {
@@ -476,32 +566,7 @@ cycleToggle.onclick = toggleCycle;
 savedModeToggle.onclick = toggleSavedMode;
 saveBtn.onclick = saveCurrent;
 searchBtn.onclick = () => selectFolder(searchInput.value);
+catalogToggle.onclick = toggleCatalog;
 
 searchInput.addEventListener("input", e => handleSearch(e.target.value));
-searchInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    selectFolder(searchInput.value);
-  }
-});
-
-document.addEventListener("click", e => {
-  if (!document.querySelector(".search-container").contains(e.target)) {
-    suggestionsEl.hidden = true;
-  }
-});
-
-window.addEventListener("keydown", e => {
-  switch (e.key) {
-    case "ArrowLeft": e.preventDefault(); showPrevious(); break;
-    case "ArrowRight": e.preventDefault(); savedMode ? showNextSaved() : showRandom(); break;
-    case "ArrowDown": e.preventDefault(); saveCurrent(); break;
-    case "ArrowUp": e.preventDefault(); toggleSavedMode(); break;
-  }
-});
-
-loadSaved();
-loadCatalog();
-</script>
-</body>
-</html>
+searchInput.add
