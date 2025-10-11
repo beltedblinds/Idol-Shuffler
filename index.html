@@ -110,14 +110,14 @@
 
   .controls {
     display: flex;
-    gap: 10px;
-    align-items: center;
-    justify-content: center;
     flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
     margin-bottom: 20px;
   }
 
-  .btn, .toggle {
+  .btn {
     background: var(--card);
     border: 1px solid #333;
     color: var(--text);
@@ -128,7 +128,7 @@
     transition: all 0.2s ease;
   }
 
-  .btn:hover, .toggle:hover {
+  .btn:hover {
     background: #272727;
     border-color: var(--accent);
     color: var(--accent-hover);
@@ -235,16 +235,6 @@
     object-fit: cover;
   }
 
-  .saved-badge {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    background: rgba(0, 0, 0, 0.7);
-    padding: 2px 6px;
-    font-size: 12px;
-    border-radius: 999px;
-  }
-
   /* Catalog Panel */
   #catalogPanel {
     display: none;
@@ -280,7 +270,6 @@
     object-fit: cover;
     display: block;
   }
-
 </style>
 </head>
 <body>
@@ -295,9 +284,9 @@
 <div class="controls">
   <button class="btn" id="prevBtn">Previous</button>
   <button class="btn" id="randomBtn">Random</button>
-  <div class="toggle" id="cycleToggle"><span id="cycleLabel">Cycle Off</span></div>
-  <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
-  <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog</span></div>
+  <button class="btn" id="cycleToggle">Cycle Off</button>
+  <button class="btn" id="savedModeToggle">Saved Mode: Off</button>
+  <button class="btn" id="catalogToggle">Catalog: Off</button>
 </div>
 
 <div class="main-content">
@@ -326,35 +315,40 @@ let cycleId = null;
 let catalogVisible = false;
 const CYCLE_MS = 7000;
 
-/* DOM */
+/* DOM Elements */
 const imgEl = document.getElementById("idolImage");
 const labelEl = document.getElementById("label");
 const savedListEl = document.getElementById("savedList");
 const randomBtn = document.getElementById("randomBtn");
 const prevBtn = document.getElementById("prevBtn");
 const cycleToggle = document.getElementById("cycleToggle");
-const cycleLabel = document.getElementById("cycleLabel");
 const saveBtn = document.getElementById("saveBtn");
 const savedModeToggle = document.getElementById("savedModeToggle");
-const savedModeLabel = document.getElementById("savedModeLabel");
 const searchInput = document.getElementById("searchInput");
 const searchBtn = document.getElementById("searchBtn");
-const suggestionsEl = document.getElementById("suggestions");
 const catalogPanel = document.getElementById("catalogPanel");
 const catalogToggle = document.getElementById("catalogToggle");
 
+/* Load and Parse Data */
+fetch(TXT_URL)
+  .then(r => r.text())
+  .then(text => {
+    catalog = parseCatalogText(text);
+    filteredCatalog = catalog;
+  });
+
 function parseCatalogText(text) {
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-  const entries = lines.map(line => {
+  return lines.map(line => {
     const idx = line.indexOf(",");
     if (idx === -1) return null;
     const folder = line.slice(0, idx).trim();
     const url = line.slice(idx + 1).trim().replace(/\/\.\//g, "/");
     return { folder, url };
-  }).filter(Boolean);
-  return entries.sort((a,b)=>a.folder.localeCompare(b.folder));
+  }).filter(Boolean).sort((a,b)=>a.folder.localeCompare(b.folder));
 }
 
+/* Display Image */
 function displayUrl(url, folder, pushHist = true) {
   if (!url) return;
   const nextImg = new Image();
@@ -374,31 +368,46 @@ function displayUrl(url, folder, pushHist = true) {
   };
 }
 
+/* Pool Helpers */
 function getCurrentPool() {
   if (savedMode && saved.length) return saved;
   if (filteredCatalog.length) return filteredCatalog;
   return catalog;
 }
 
+/* Catalog Rendering (Lazy Loading) */
 function renderCatalog() {
   const pool = getCurrentPool();
   catalogPanel.innerHTML = "";
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const img = e.target;
+        img.src = img.dataset.src;
+        observer.unobserve(img);
+      }
+    });
+  }, { root: catalogPanel, threshold: 0.1 });
+
   pool.forEach(it => {
     const div = document.createElement("div");
     div.className = "catalog-item";
-    div.innerHTML = `<img loading="lazy" src="${it.url}" alt="${it.folder}">`;
+    div.innerHTML = `<img loading="lazy" data-src="${it.url}" alt="${it.folder}">`;
     div.onclick = () => displayUrl(it.url, it.folder, true);
     catalogPanel.appendChild(div);
+    observer.observe(div.querySelector("img"));
   });
 }
 
+/* Toggle Catalog */
 function toggleCatalog() {
   catalogVisible = !catalogVisible;
+  catalogToggle.textContent = catalogVisible ? "Catalog: On" : "Catalog: Off";
   catalogPanel.style.display = catalogVisible ? "flex" : "none";
   if (catalogVisible) renderCatalog();
 }
 
-// ... (all your existing JS logic continues unchanged) ...
+catalogToggle.addEventListener("click", toggleCatalog);
 </script>
 </body>
 </html>
