@@ -303,17 +303,29 @@ function parseCatalogText(text) {
 
 function displayUrl(url, folder, pushHist = true) {
   if (!url) return;
-  imgEl.style.opacity = "0";
-  setTimeout(() => {
-    imgEl.src = url;
-    labelEl.textContent = folder || "";
-    saveBtn.classList.toggle("saved", !!saved.find(s => s.url === url));
-    imgEl.style.opacity = "1";
-  }, 100);
-  if (pushHist && (!history.length || history[history.length - 1] !== url)) {
-    history.push(url);
-    historyPos = history.length - 1;
-  }
+
+  const nextImg = new Image();
+  nextImg.src = url;
+
+  // Wait for the new image to load before switching
+  nextImg.onload = () => {
+    imgEl.style.opacity = "0";
+    setTimeout(() => {
+      imgEl.src = url;
+      labelEl.textContent = folder || "";
+      saveBtn.classList.toggle("saved", !!saved.find(s => s.url === url));
+      imgEl.style.opacity = "1";
+    }, 100);
+
+    if (pushHist && (!history.length || history[history.length - 1] !== url)) {
+      history.push(url);
+      historyPos = history.length - 1;
+    }
+  };
+
+  nextImg.onerror = () => {
+    console.warn("Failed to load image:", url);
+  };
 }
 
 function getCurrentPool() {
@@ -414,8 +426,7 @@ function handleSearch(input) {
     suggestionsEl.hidden = true;
     return;
   }
-  const matches = [...new Set(catalog.map(it => it.folder))]
-    .filter(f => f.toLowerCase().includes(term));
+  const matches = [...new Set(catalog.map(it => it.folder))].filter(f => f.toLowerCase().includes(term));
   showSuggestions(matches, term);
 }
 
@@ -440,7 +451,6 @@ function selectFolder(folder) {
   const match = folder.trim().toLowerCase();
   filteredCatalog = catalog.filter(it => it.folder.toLowerCase() === match);
   if (!filteredCatalog.length) {
-    // Try partial match fallback
     filteredCatalog = catalog.filter(it => it.folder.toLowerCase().includes(match));
   }
   suggestionsEl.hidden = true;
