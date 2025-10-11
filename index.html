@@ -134,11 +134,19 @@
     color: var(--accent-hover);
   }
 
-  .toggle {
+  .main-content {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    user-select: none;
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px;
+  }
+
+  .viewer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   .image-wrapper {
@@ -236,6 +244,43 @@
     font-size: 12px;
     border-radius: 999px;
   }
+
+  /* Catalog Panel */
+  #catalogPanel {
+    display: none;
+    flex-direction: column;
+    width: 260px;
+    max-height: 78vh;
+    overflow-y: auto;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 0 10px rgba(255, 123, 203, 0.1);
+  }
+
+  .catalog-item {
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: transform 0.2s, border-color 0.2s;
+    border: 1px solid #222;
+  }
+
+  .catalog-item:hover {
+    transform: scale(1.03);
+    border-color: var(--accent);
+  }
+
+  .catalog-item img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    display: block;
+  }
+
 </style>
 </head>
 <body>
@@ -252,15 +297,21 @@
   <button class="btn" id="randomBtn">Random</button>
   <div class="toggle" id="cycleToggle"><span id="cycleLabel">Cycle Off</span></div>
   <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
+  <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog</span></div>
 </div>
 
-<div class="image-wrapper">
-  <button id="saveBtn" title="Save / Unsave">💾</button>
-  <img id="idolImage" src="" alt="Idol" />
-</div>
+<div class="main-content">
+  <div class="viewer">
+    <div class="image-wrapper">
+      <button id="saveBtn" title="Save / Unsave">💾</button>
+      <img id="idolImage" src="" alt="Idol" />
+    </div>
+    <div id="label"></div>
+    <div id="savedList"></div>
+  </div>
 
-<div id="label"></div>
-<div id="savedList"></div>
+  <div id="catalogPanel"></div>
+</div>
 
 <script>
 const TXT_URL = "https://raw.githubusercontent.com/beltedblinds/idols-media-01/main/idol_gallery_links.txt";
@@ -272,6 +323,7 @@ let historyPos = -1;
 let savedIndex = 0;
 let savedMode = false;
 let cycleId = null;
+let catalogVisible = false;
 const CYCLE_MS = 7000;
 
 /* DOM */
@@ -288,6 +340,8 @@ const savedModeLabel = document.getElementById("savedModeLabel");
 const searchInput = document.getElementById("searchInput");
 const searchBtn = document.getElementById("searchBtn");
 const suggestionsEl = document.getElementById("suggestions");
+const catalogPanel = document.getElementById("catalogPanel");
+const catalogToggle = document.getElementById("catalogToggle");
 
 function parseCatalogText(text) {
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
@@ -307,7 +361,6 @@ function displayUrl(url, folder, pushHist = true) {
   const nextImg = new Image();
   nextImg.src = url;
 
-  // Wait for the new image to load before switching
   nextImg.onload = () => {
     imgEl.style.opacity = "0";
     setTimeout(() => {
@@ -316,16 +369,12 @@ function displayUrl(url, folder, pushHist = true) {
       saveBtn.classList.toggle("saved", !!saved.find(s => s.url === url));
       imgEl.style.opacity = "1";
     }, 100);
-
     if (pushHist && (!history.length || history[history.length - 1] !== url)) {
       history.push(url);
       historyPos = history.length - 1;
     }
   };
-
-  nextImg.onerror = () => {
-    console.warn("Failed to load image:", url);
-  };
+  nextImg.onerror = () => console.warn("Failed to load image:", url);
 }
 
 function getCurrentPool() {
@@ -340,6 +389,7 @@ function showRandom() {
   const i = Math.floor(Math.random() * pool.length);
   displayUrl(pool[i].url, pool[i].folder, true);
   if (savedMode) savedIndex = i;
+  if (catalogVisible) renderCatalog();
 }
 
 function showPrevious() {
@@ -380,6 +430,13 @@ function toggleCycle() { cycleId ? stopCycle() : startCycle(); }
 function toggleSavedMode() {
   savedMode = !savedMode;
   savedModeLabel.textContent = "Saved Mode: " + (savedMode ? "On" : "Off");
+  if (catalogVisible) renderCatalog();
+}
+
+function toggleCatalog() {
+  catalogVisible = !catalogVisible;
+  catalogPanel.style.display = catalogVisible ? "flex" : "none";
+  if (catalogVisible) renderCatalog();
 }
 
 function saveCurrent() {
@@ -392,6 +449,7 @@ function saveCurrent() {
   persistSaved();
   renderSaved();
   saveBtn.classList.toggle("saved", idx === -1);
+  if (catalogVisible) renderCatalog();
 }
 
 function loadSaved() {
@@ -418,12 +476,25 @@ function renderSaved() {
   });
 }
 
+function renderCatalog() {
+  const pool = getCurrentPool();
+  catalogPanel.innerHTML = "";
+  pool.forEach((it, i) => {
+    const div = document.createElement("div");
+    div.className = "catalog-item";
+    div.innerHTML = `<img src="${it.url}" alt="${it.folder}">`;
+    div.onclick = () => displayUrl(it.url, it.folder, true);
+    catalogPanel.appendChild(div);
+  });
+}
+
 function handleSearch(input) {
   const term = input.trim().toLowerCase();
   if (!term) {
     filteredCatalog = [];
     showRandom();
     suggestionsEl.hidden = true;
+    if (catalogVisible) renderCatalog();
     return;
   }
   const matches = [...new Set(catalog.map(it => it.folder))].filter(f => f.toLowerCase().includes(term));
@@ -456,6 +527,7 @@ function selectFolder(folder) {
   suggestionsEl.hidden = true;
   searchInput.value = folder;
   showRandom();
+  if (catalogVisible) renderCatalog();
 }
 
 async function loadCatalog() {
@@ -475,6 +547,7 @@ prevBtn.onclick = showPrevious;
 cycleToggle.onclick = toggleCycle;
 savedModeToggle.onclick = toggleSavedMode;
 saveBtn.onclick = saveCurrent;
+catalogToggle.onclick = toggleCatalog;
 searchBtn.onclick = () => selectFolder(searchInput.value);
 
 searchInput.addEventListener("input", e => handleSearch(e.target.value));
