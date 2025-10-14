@@ -703,7 +703,6 @@ function toggleCatalogIdol(folderName, btn) {
     currentIdolFilter = null;
     btn.classList.remove("active");
     renderCatalogThumbnails();
-    // 🩷 Reset categories to show all
     renderCategoryButtons();
     return;
   }
@@ -712,19 +711,16 @@ function toggleCatalogIdol(folderName, btn) {
   [...idolButtonsEl.children].forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
 
-  const pool = filteredCatalog.filter(it => it.folder === folderName);
-  catalogPanel.innerHTML = "";
-  pool.forEach(item => {
-    const img = document.createElement("img");
-    img.src = item.thumb || item.raw || item.url;
-    img.className = "catalog-thumb";
-    img.title = item.folder;
-    img.onclick = () => displayUrl(item.raw || item.url, item.folder, true);
-    catalogPanel.appendChild(img);
-  });
+  // 🩷 If both idol + category filters exist, combine them
+  if (currentCategoryFilter || currentIdolFilter) {
+    applyIdolAndCategoryFilters();
+  } else {
+    renderCatalogThumbnails();
+  }
+
   scrollToIdol(folderName);
 
-  // 🩷 NEW: Filter categories to only those this idol has
+  // 🩷 Show only categories this idol actually has
   const idolCats = [...new Set(
     catalog
       .filter(it => it.folder === folderName && it.category)
@@ -732,6 +728,7 @@ function toggleCatalogIdol(folderName, btn) {
   )];
   renderCategoryButtons(idolCats);
 }
+
 
 
 function scrollToIdol(folderName) {
@@ -797,21 +794,58 @@ function toggleCategoryFilter(cat, btn) {
   }
 
   seenImages.clear();
-  applyFilters();
 
-  // 🩷 NEW: Filter idol buttons immediately when a category is clicked
+  // 🩷 If both idol + category are active, show combined results
+  if (currentIdolFilter || currentCategoryFilter) {
+    applyIdolAndCategoryFilters();
+  } else {
+    applyFilters();
+  }
+
+  // 🩷 Update idol buttons based on selected category
   if (currentCategoryFilter) {
     const idolsWithCat = [...new Set(
       catalog
-        .filter(it => it.category && it.category.toLowerCase() === currentCategoryFilter.toLowerCase())
+        .filter(
+          it =>
+            it.category &&
+            it.category.toLowerCase() === currentCategoryFilter.toLowerCase()
+        )
         .map(it => it.folder)
     )];
     renderIdolButtons(idolsWithCat);
   } else {
-    // Reset to show all idols
     renderIdolButtons();
   }
 }
+
+
+// 🩷 NEW — Apply both idol + category filters together
+function applyIdolAndCategoryFilters() {
+  let pool = catalog;
+
+  if (currentIdolFilter) {
+    pool = pool.filter(it => it.folder === currentIdolFilter);
+  }
+  if (currentCategoryFilter) {
+    pool = pool.filter(
+      it =>
+        it.category &&
+        it.category.toLowerCase() === currentCategoryFilter.toLowerCase()
+    );
+  }
+
+  catalogPanel.innerHTML = "";
+  pool.forEach(item => {
+    const img = document.createElement("img");
+    img.src = item.thumb || item.raw || item.url;
+    img.className = "catalog-thumb";
+    img.title = item.folder;
+    img.onclick = () => displayUrl(item.raw || item.url, item.folder, true);
+    catalogPanel.appendChild(img);
+  });
+}
+
 
 /* Combine idol + category filters */
 function applyFilters() {
