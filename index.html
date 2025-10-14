@@ -685,10 +685,10 @@ function renderCatalogThumbnails() {
 
 let currentIdolFilter = null; // tracks which idol is currently active in catalog
 
-function renderIdolButtons() {
+function renderIdolButtons(list = null) {
   idolButtonsEl.innerHTML = "";
-  if (!filteredCatalog.length) return;
-  const names = [...new Set(filteredCatalog.map(it => it.folder))];
+  const names = list || [...new Set(filteredCatalog.map(it => it.folder))];
+  if (!names.length) return;
   names.forEach(name => {
     const btn = document.createElement("button");
     btn.className = "idol-btn";
@@ -700,14 +700,14 @@ function renderIdolButtons() {
 
 function toggleCatalogIdol(folderName, btn) {
   if (currentIdolFilter === folderName) {
-    // 🔁 Same idol clicked again → show all thumbnails
     currentIdolFilter = null;
     btn.classList.remove("active");
     renderCatalogThumbnails();
+    // 🩷 Reset categories to show all
+    renderCategoryButtons();
     return;
   }
 
-  // 🎯 New idol selected
   currentIdolFilter = folderName;
   [...idolButtonsEl.children].forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
@@ -723,7 +723,16 @@ function toggleCatalogIdol(folderName, btn) {
     catalogPanel.appendChild(img);
   });
   scrollToIdol(folderName);
+
+  // 🩷 NEW: Filter categories to only those this idol has
+  const idolCats = [...new Set(
+    catalog
+      .filter(it => it.folder === folderName && it.category)
+      .map(it => it.category)
+  )];
+  renderCategoryButtons(idolCats);
 }
+
 
 function scrollToIdol(folderName) {
   const thumbs = [...catalogPanel.querySelectorAll(".catalog-thumb")];
@@ -765,9 +774,9 @@ function toggleCategories() {
   }
 }
 
-function renderCategoryButtons() {
+function renderCategoryButtons(list = categories) {
   categoryPanel.innerHTML = "";
-  categories.forEach(cat => {
+  list.forEach(cat => {
     const btn = document.createElement("button");
     btn.className = "category-btn";
     btn.textContent = cat;
@@ -786,8 +795,22 @@ function toggleCategoryFilter(cat, btn) {
     [...categoryPanel.children].forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
   }
+
   seenImages.clear();
   applyFilters();
+
+  // 🩷 NEW: Filter idol buttons immediately when a category is clicked
+  if (currentCategoryFilter) {
+    const idolsWithCat = [...new Set(
+      catalog
+        .filter(it => it.category && it.category.toLowerCase() === currentCategoryFilter.toLowerCase())
+        .map(it => it.folder)
+    )];
+    renderIdolButtons(idolsWithCat);
+  } else {
+    // Reset to show all idols
+    renderIdolButtons();
+  }
 }
 
 /* Combine idol + category filters */
