@@ -705,10 +705,7 @@ function toggleCatalogIdol(folderName, btn) {
     btn.classList.remove("active");
     applyFilters();
 
-    // ✅ Restore all idols when no idol filter active
-    renderIdolButtons();
-
-    // ✅ Restore categories depending on whether a category filter is still active
+    // ✅ Restore idol list depending on category filter
     if (currentCategoryFilter) {
       const idolsWithCat = [...new Set(
         catalog
@@ -720,8 +717,11 @@ function toggleCatalogIdol(folderName, btn) {
       )];
       renderIdolButtons(idolsWithCat);
     } else {
-      renderCategoryButtons();
+      renderIdolButtons();
     }
+
+    // ✅ Restore categories depending on idol filter state
+    renderCategoryButtons();
     return;
   }
 
@@ -730,22 +730,24 @@ function toggleCatalogIdol(folderName, btn) {
   [...idolButtonsEl.children].forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
 
-  applyFilters(); // refresh thumbnails based on active filters
+  applyFilters(); // refresh thumbnails based on current filters
 
-  // 🩷 Limit categories to only ones this idol has
+  // ✅ Limit categories to only ones this idol has
   const idolCats = [...new Set(
     catalog
       .filter(it =>
         it.folder === folderName &&
-        (!currentCategoryFilter || it.category.toLowerCase() === currentCategoryFilter.toLowerCase())
+        (!currentCategoryFilter ||
+          it.category.toLowerCase() === currentCategoryFilter.toLowerCase())
       )
       .map(it => it.category)
   )];
   renderCategoryButtons(idolCats.length ? idolCats : categories);
 
-  // ✅ Always restore the full idol list (don’t hide others)
-  renderIdolButtons();
+  // ✅ Keep idols list as-is (don’t reset to full)
+  // so all idols from the selected category remain visible.
 }
+
 
 
 
