@@ -271,53 +271,6 @@
     border-color: var(--accent);
   }
 
-  /* 📁 Folder list styles */
-  #folderListPanel {
-    position: fixed;
-    right: 280px;
-    top: 0;
-    width: 0;
-    height: 100%;
-    overflow-y: auto;
-    background: #0d0d0d;
-    border-left: 1px solid #333;
-    transition: width 0.3s ease;
-    padding: 10px;
-    box-sizing: border-box;
-    z-index: 998;
-  }
-
-  #folderListPanel.open {
-    width: 180px;
-  }
-
-  .folder-btn {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: var(--card);
-    border: 1px solid #333;
-    color: var(--text);
-    padding: 8px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    margin-bottom: 6px;
-    font-size: 13px;
-    transition: all 0.2s ease;
-  }
-
-  .folder-btn:hover {
-    background: #272727;
-    border-color: var(--accent);
-    color: var(--accent-hover);
-  }
-
-  .folder-btn.active {
-    background: rgba(255, 123, 203, 0.15);
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
 </style>
 </head>
 <body>
@@ -345,7 +298,6 @@
 <div id="label"></div>
 <div id="savedList"></div>
 
-<div id="folderListPanel"></div>
 <div id="catalogPanel"></div>
 
 <script>
@@ -378,7 +330,6 @@ const searchBtn = document.getElementById("searchBtn");
 const suggestionsEl = document.getElementById("suggestions");
 const catalogPanel = document.getElementById("catalogPanel");
 const catalogToggle = document.getElementById("catalogToggle");
-const folderListPanel = document.getElementById("folderListPanel");
 
 /* 📁 Updated parser for 3-field format */
 function parseCatalogText(text) {
@@ -420,15 +371,24 @@ function showRandom() {
   const pool = getCurrentPool();
   if (!pool.length) return;
 
+  // Reset if we've seen all images in this pool
   if (seenImages.size >= pool.length) {
     seenImages.clear();
   }
 
+  // Filter to only unseen images
   const unseen = pool.filter(item => !seenImages.has(item.raw || item.url));
+
+  // Pick one unseen at random
   const i = Math.floor(Math.random() * unseen.length);
   const item = unseen[i];
+
+  // Mark as seen
   seenImages.add(item.raw || item.url);
+
+  // Display
   displayUrl(item.raw || item.url, item.folder, true);
+
   if (savedMode) savedIndex = pool.indexOf(item);
 }
 
@@ -546,24 +506,19 @@ function selectFolder(folder) {
   }
   suggestionsEl.hidden = true;
   searchInput.value = folder;
+
+  //🔄 Reset seen tracker when switching folders
   seenImages.clear();
+  
   showRandom();
-  if (catalogOpen) {
-    renderCatalogThumbnails();
-    renderFolderList();
-  }
-  highlightActiveFolder(folder);
+  if (catalogOpen) renderCatalogThumbnails();
 }
 
 /* 📂 Catalog logic */
 function toggleCatalog() {
   catalogOpen = !catalogOpen;
   catalogPanel.classList.toggle("open", catalogOpen);
-  folderListPanel.classList.toggle("open", catalogOpen);
-  if (catalogOpen) {
-    renderCatalogThumbnails();
-    renderFolderList();
-  }
+  if (catalogOpen) renderCatalogThumbnails();
 }
 
 function renderCatalogThumbnails() {
@@ -579,42 +534,51 @@ function renderCatalogThumbnails() {
   });
 }
 
-function renderFolderList() {
-  const pool = getCurrentPool();
-  const folders = [...new Set(pool.map(it => it.folder))].sort();
-  folderListPanel.innerHTML = "";
-  folders.forEach(folder => {
-    const btn = document.createElement("button");
-    btn.className = "folder-btn";
-    btn.textContent = folder;
-    btn.onclick = () => selectFolder(folder);
-    folderListPanel.appendChild(btn);
-  });
-}
-
-function highlightActiveFolder(folder) {
-  const buttons = folderListPanel.querySelectorAll(".folder-btn");
-  buttons.forEach(btn => btn.classList.toggle("active", btn.textContent === folder));
-}
-
-/* Init */
-fetch(TXT_URL)
-  .then(res => res.text())
-  .then(text => {
-    catalog = parseCatalogText(text);
+async function loadCatalog() {
+  try {
+    const r = await fetch(TXT_URL);
+    const t = await r.text();
+    catalog = parseCatalogText(t);
     showRandom();
-    loadSaved();
-  });
+  } catch {
+    labelEl.textContent = "Error loading gallery list.";
+  }
+}
 
-/* Events */
+/* Listeners */
 randomBtn.onclick = showRandom;
 prevBtn.onclick = showPrevious;
 cycleToggle.onclick = toggleCycle;
 savedModeToggle.onclick = toggleSavedMode;
 saveBtn.onclick = saveCurrent;
-searchBtn.onclick = () => handleSearch(searchInput.value);
-searchInput.oninput = e => handleSearch(e.target.value);
+searchBtn.onclick = () => selectFolder(searchInput.value);
 catalogToggle.onclick = toggleCatalog;
+
+searchInput.addEventListener("input", e => handleSearch(e.target.value));
+searchInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    selectFolder(searchInput.value);
+  }
+});
+
+document.addEventListener("click", e => {
+  if (!document.querySelector(".search-container").contains(e.target)) {
+    suggestionsEl.hidden = true;
+  }
+});
+
+window.addEventListener("keydown", e => {
+  switch (e.key) {
+    case "ArrowLeft": e.preventDefault(); showPrevious(); break;
+    case "ArrowRight": e.preventDefault(); savedMode ? showNextSaved() : showRandom(); break;
+    case "ArrowDown": e.preventDefault(); saveCurrent(); break;
+    case "ArrowUp": e.preventDefault(); toggleSavedMode(); break;
+  }
+});
+
+loadSaved();
+loadCatalog();
 </script>
 </body>
 </html>
