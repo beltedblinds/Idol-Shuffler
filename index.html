@@ -236,6 +236,41 @@
     font-size: 12px;
     border-radius: 999px;
   }
+
+  /* 🧭 Catalog styles */
+  #catalogPanel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 0;
+    height: 100%;
+    overflow-y: auto;
+    background: #111;
+    border-left: 1px solid #333;
+    transition: width 0.3s ease;
+    padding: 10px;
+    box-sizing: border-box;
+    z-index: 999;
+  }
+
+  #catalogPanel.open {
+    width: 280px;
+  }
+
+  .catalog-thumb {
+    width: 100%;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, border 0.2s;
+    border: 1px solid #333;
+  }
+
+  .catalog-thumb:hover {
+    transform: scale(1.03);
+    border-color: var(--accent);
+  }
+
 </style>
 </head>
 <body>
@@ -252,6 +287,7 @@
   <button class="btn" id="randomBtn">Random</button>
   <div class="toggle" id="cycleToggle"><span id="cycleLabel">Cycle Off</span></div>
   <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
+  <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog</span></div>
 </div>
 
 <div class="image-wrapper">
@@ -261,6 +297,8 @@
 
 <div id="label"></div>
 <div id="savedList"></div>
+
+<div id="catalogPanel"></div>
 
 <script>
 const TXT_URL = "https://raw.githubusercontent.com/beltedblinds/idols-media-01/main/idol_gallery_links.txt";
@@ -272,6 +310,7 @@ let historyPos = -1;
 let savedIndex = 0;
 let savedMode = false;
 let cycleId = null;
+let catalogOpen = false;
 const CYCLE_MS = 7000;
 
 /* DOM */
@@ -288,26 +327,23 @@ const savedModeLabel = document.getElementById("savedModeLabel");
 const searchInput = document.getElementById("searchInput");
 const searchBtn = document.getElementById("searchBtn");
 const suggestionsEl = document.getElementById("suggestions");
+const catalogPanel = document.getElementById("catalogPanel");
+const catalogToggle = document.getElementById("catalogToggle");
 
+/* 📁 Updated parser for 3-field format */
 function parseCatalogText(text) {
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-  const entries = lines.map(line => {
-    const idx = line.indexOf(",");
-    if (idx === -1) return null;
-    const folder = line.slice(0, idx).trim();
-    const url = line.slice(idx + 1).trim().replace(/\/\.\//g, "/");
-    return { folder, url };
-  }).filter(Boolean);
-  return entries.sort((a,b)=>a.folder.localeCompare(b.folder));
+  return lines.map(line => {
+    const parts = line.split(",").map(p => p.trim());
+    return { folder: parts[0], raw: parts[1], thumb: parts[2] };
+  }).filter(e => e.folder && e.raw && e.thumb)
+    .sort((a,b)=>a.folder.localeCompare(b.folder));
 }
 
 function displayUrl(url, folder, pushHist = true) {
   if (!url) return;
-
   const nextImg = new Image();
   nextImg.src = url;
-
-  // Wait for the new image to load before switching
   nextImg.onload = () => {
     imgEl.style.opacity = "0";
     setTimeout(() => {
@@ -316,16 +352,12 @@ function displayUrl(url, folder, pushHist = true) {
       saveBtn.classList.toggle("saved", !!saved.find(s => s.url === url));
       imgEl.style.opacity = "1";
     }, 100);
-
     if (pushHist && (!history.length || history[history.length - 1] !== url)) {
       history.push(url);
       historyPos = history.length - 1;
     }
   };
-
-  nextImg.onerror = () => {
-    console.warn("Failed to load image:", url);
-  };
+  nextImg.onerror = () => console.warn("Failed to load image:", url);
 }
 
 function getCurrentPool() {
@@ -338,7 +370,8 @@ function showRandom() {
   const pool = getCurrentPool();
   if (!pool.length) return;
   const i = Math.floor(Math.random() * pool.length);
-  displayUrl(pool[i].url, pool[i].folder, true);
+  const item = pool[i];
+  displayUrl(item.raw || item.url, item.folder, true);
   if (savedMode) savedIndex = i;
 }
 
@@ -349,7 +382,7 @@ function showPrevious() {
   } else if (historyPos > 0) {
     historyPos--;
     const url = history[historyPos];
-    const found = catalog.find(it => it.url === url);
+    const found = catalog.find(it => it.raw === url || it.url === url);
     displayUrl(url, found ? found.folder : "", false);
   }
 }
@@ -385,7 +418,7 @@ function toggleSavedMode() {
 function saveCurrent() {
   const url = imgEl.src;
   if (!url) return;
-  const found = catalog.find(it => it.url === url);
+  const found = catalog.find(it => it.raw === url || it.url === url);
   const idx = saved.findIndex(s => s.url === url);
   if (idx !== -1) saved.splice(idx, 1);
   else saved.push({ url, folder: found ? found.folder : "" });
@@ -418,6 +451,7 @@ function renderSaved() {
   });
 }
 
+/* 🔍 Search logic */
 function handleSearch(input) {
   const term = input.trim().toLowerCase();
   if (!term) {
@@ -456,6 +490,27 @@ function selectFolder(folder) {
   suggestionsEl.hidden = true;
   searchInput.value = folder;
   showRandom();
+  if (catalogOpen) renderCatalogThumbnails();
+}
+
+/* 📂 Catalog logic */
+function toggleCatalog() {
+  catalogOpen = !catalogOpen;
+  catalogPanel.classList.toggle("open", catalogOpen);
+  if (catalogOpen) renderCatalogThumbnails();
+}
+
+function renderCatalogThumbnails() {
+  const pool = getCurrentPool();
+  catalogPanel.innerHTML = "";
+  pool.forEach(item => {
+    const img = document.createElement("img");
+    img.src = item.thumb || item.raw || item.url;
+    img.className = "catalog-thumb";
+    img.title = item.folder;
+    img.onclick = () => displayUrl(item.raw || item.url, item.folder, true);
+    catalogPanel.appendChild(img);
+  });
 }
 
 async function loadCatalog() {
@@ -476,6 +531,7 @@ cycleToggle.onclick = toggleCycle;
 savedModeToggle.onclick = toggleSavedMode;
 saveBtn.onclick = saveCurrent;
 searchBtn.onclick = () => selectFolder(searchInput.value);
+catalogToggle.onclick = toggleCatalog;
 
 searchInput.addEventListener("input", e => handleSearch(e.target.value));
 searchInput.addEventListener("keydown", e => {
