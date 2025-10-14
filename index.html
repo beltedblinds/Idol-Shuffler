@@ -424,7 +424,7 @@ function parseCatalogText(text) {
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
   return lines.map(line => {
     const parts = line.split(",").map(p => p.trim());
-    return { folder: parts[0], raw: parts[1], thumb: parts[2] };
+    return { folder: parts[0], raw: parts[1], thumb: parts[2], category: parts[3] || ""};
   }).filter(e => e.folder && e.raw && e.thumb)
     .sort((a,b)=>a.folder.localeCompare(b.folder));
 }
@@ -557,6 +557,7 @@ function selectFolder(folder) {
   searchInput.value = folder;
   seenImages.clear();
   showRandom();
+  applyFilters();
   if (catalogOpen) renderCatalogThumbnails();
   renderIdolButtons();
 }
@@ -685,14 +686,20 @@ function toggleCategoryFilter(cat, btn) {
 
 /* Combine idol + category filters */
 function applyFilters() {
-  if (currentCategoryFilter) {
-    filteredCatalog = catalog.filter(it => it.category === currentCategoryFilter);
-  } else {
-    filteredCatalog = [];
-  }
+  const idolFilter = searchInput.value.trim().toLowerCase();
+  const hasIdol = idolFilter.length > 0;
+  const hasCat = !!currentCategoryFilter;
+
+  filteredCatalog = catalog.filter(it => {
+    const matchIdol = !hasIdol || it.folder.toLowerCase().includes(idolFilter);
+    const matchCat = !hasCat || (it.category && it.category.toLowerCase() === currentCategoryFilter.toLowerCase());
+    return matchIdol && matchCat;
+  });
+
   showRandom();
   if (catalogOpen) renderCatalogThumbnails();
 }
+
 
 async function loadCatalog() {
   try {
