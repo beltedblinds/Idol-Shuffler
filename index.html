@@ -262,7 +262,7 @@
     border-color: var(--accent);
   }
 
-  /* 🌸 Idol buttons (left) */
+  /* 🌸 Idol buttons (moved to left side) */
   #idolButtons {
     position: fixed;
     top: 0;
@@ -302,52 +302,6 @@
     border-color: var(--accent);
     color: var(--accent-hover);
   }
-
-  /* 🗂️ Category buttons panel (NEW) */
-  #categoryPanel {
-    position: fixed;
-    left: 200px;
-    top: 0;
-    width: 0;
-    height: 100%;
-    overflow-y: auto;
-    background: #111;
-    border-right: 1px solid #333;
-    transition: width 0.3s ease;
-    padding: 10px;
-    box-sizing: border-box;
-    z-index: 998;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  #categoryPanel.open {
-    width: 180px;
-  }
-
-  .category-btn {
-    background: var(--card);
-    border: 1px solid #333;
-    color: var(--text);
-    padding: 8px 10px;
-    border-radius: 8px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: left;
-  }
-
-  .category-btn.active {
-    border-color: var(--accent);
-    color: var(--accent-hover);
-  }
-
-  .category-btn:hover {
-    background: #272727;
-    border-color: var(--accent);
-    color: var(--accent-hover);
-  }
 </style>
 </head>
 <body>
@@ -365,11 +319,10 @@
   <div class="toggle" id="cycleToggle"><span id="cycleLabel">Cycle Off</span></div>
   <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
   <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog</span></div>
-  <div class="toggle" id="categoryToggle"><span id="categoryLabel">Categories</span></div>
 </div>
 
+<!-- 🩷 Idol buttons now floating on left -->
 <div id="idolButtons"></div>
-<div id="categoryPanel"></div>
 
 <div class="image-wrapper">
   <button id="saveBtn" title="Save / Unsave">💾</button>
@@ -379,12 +332,11 @@
 <div id="label"></div>
 <div id="savedList"></div>
 
+<!-- Catalog stays on right -->
 <div id="catalogPanel"></div>
 
 <script>
 const TXT_URL = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links.txt";
-const CAT_URL = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/categories.txt";
-
 let catalog = [];
 let filteredCatalog = [];
 let saved = [];
@@ -394,8 +346,6 @@ let savedIndex = 0;
 let savedMode = false;
 let cycleId = null;
 let catalogOpen = false;
-let categoryOpen = false;
-let currentCategoryFilter = null;
 const CYCLE_MS = 7000;
 let seenImages = new Set();
 
@@ -416,16 +366,15 @@ const suggestionsEl = document.getElementById("suggestions");
 const catalogPanel = document.getElementById("catalogPanel");
 const catalogToggle = document.getElementById("catalogToggle");
 const idolButtonsEl = document.getElementById("idolButtons");
-const categoryPanel = document.getElementById("categoryPanel");
-const categoryToggle = document.getElementById("categoryToggle");
 
-/* Parse TXT (new 4th column for category) */
+/* Parser and functions (same as before) */
 function parseCatalogText(text) {
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
   return lines.map(line => {
     const parts = line.split(",").map(p => p.trim());
-    return { folder: parts[0], raw: parts[1], thumb: parts[2], category: parts[3] || "Uncategorized" };
-  }).filter(e => e.folder && e.raw);
+    return { folder: parts[0], raw: parts[1], thumb: parts[2] };
+  }).filter(e => e.folder && e.raw && e.thumb)
+    .sort((a,b)=>a.folder.localeCompare(b.folder));
 }
 
 function displayUrl(url, folder, pushHist = true) {
@@ -448,12 +397,9 @@ function displayUrl(url, folder, pushHist = true) {
 }
 
 function getCurrentPool() {
-  let pool = catalog;
-  if (savedMode && saved.length) pool = saved;
-  else if (filteredCatalog.length) pool = filteredCatalog;
-  if (currentCategoryFilter)
-    pool = pool.filter(it => it.category.toLowerCase() === currentCategoryFilter.toLowerCase());
-  return pool;
+  if (savedMode && saved.length) return saved;
+  if (filteredCatalog.length) return filteredCatalog;
+  return catalog;
 }
 
 function showRandom() {
@@ -479,20 +425,29 @@ function showPrevious() {
   }
 }
 
+function showNextSaved() {
+  if (!saved.length) return;
+  savedIndex = (savedIndex + 1) % saved.length;
+  displayUrl(saved[savedIndex].url, saved[savedIndex].folder, true);
+}
+
 function startCycle() {
   if (cycleId) clearInterval(cycleId);
-  cycleId = setInterval(() => showRandom(), CYCLE_MS);
+  cycleId = setInterval(() => {
+    if (savedMode && saved.length) showNextSaved();
+    else showRandom();
+  }, CYCLE_MS);
   cycleLabel.textContent = "Cycle On";
 }
+
 function stopCycle() { clearInterval(cycleId); cycleId = null; cycleLabel.textContent = "Cycle Off"; }
 function toggleCycle() { cycleId ? stopCycle() : startCycle(); }
-
 function toggleSavedMode() {
   savedMode = !savedMode;
   savedModeLabel.textContent = "Saved Mode: " + (savedMode ? "On" : "Off");
 }
 
-/* Saving */
+/* Saving, Search, Catalog same as before */
 function saveCurrent() {
   const url = imgEl.src;
   if (!url) return;
@@ -500,88 +455,134 @@ function saveCurrent() {
   const idx = saved.findIndex(s => s.url === url);
   if (idx !== -1) saved.splice(idx, 1);
   else saved.push({ url, folder: found ? found.folder : "" });
-  localStorage.setItem("idol_saved", JSON.stringify(saved));
+  persistSaved();
   renderSaved();
   saveBtn.classList.toggle("saved", idx === -1);
 }
-
-function loadSaved() {
-  try { saved = JSON.parse(localStorage.getItem("idol_saved")) || []; } catch { saved = []; }
-  renderSaved();
-}
+function loadSaved() { try { saved = JSON.parse(localStorage.getItem("idol_saved")) || []; } catch { saved = []; } renderSaved(); }
+function persistSaved() { localStorage.setItem("idol_saved", JSON.stringify(saved)); }
 function renderSaved() {
   savedListEl.innerHTML = "";
   saved.forEach((it, i) => {
     const div = document.createElement("div");
     div.className = "saved-item";
     div.innerHTML = `<img src="${it.url}"><div class='saved-badge'>${i+1}</div>`;
-    div.onclick = () => displayUrl(it.url, it.folder, true);
+    div.onclick = () => { savedIndex = i; displayUrl(it.url, it.folder, true); };
     savedListEl.appendChild(div);
   });
 }
 
-/* Catalog + Idol Buttons already exist */
+function handleSearch(input) {
+  const term = input.trim().toLowerCase();
+  if (!term) { filteredCatalog = []; showRandom(); suggestionsEl.hidden = true; return; }
+  const matches = [...new Set(catalog.map(it => it.folder))].filter(f => f.toLowerCase().includes(term));
+  showSuggestions(matches, term);
+}
+
+function showSuggestions(matches, term) {
+  suggestionsEl.innerHTML = "";
+  if (!matches.length) {
+    suggestionsEl.innerHTML = `<div class="no-result">No results for "${term}"</div>`;
+    suggestionsEl.hidden = false;
+    return;
+  }
+  matches.forEach(folder => {
+    const div = document.createElement("div");
+    div.className = "suggestion";
+    div.textContent = folder;
+    div.onclick = () => selectFolder(folder);
+    suggestionsEl.appendChild(div);
+  });
+  suggestionsEl.hidden = false;
+}
+
+/* 📂 Catalog + Idol Buttons */
+function selectFolder(folder) {
+  const match = folder.trim().toLowerCase();
+  filteredCatalog = catalog.filter(it => it.folder.toLowerCase() === match);
+  if (!filteredCatalog.length) filteredCatalog = catalog.filter(it => it.folder.toLowerCase().includes(match));
+  suggestionsEl.hidden = true;
+  searchInput.value = folder;
+  seenImages.clear();
+  showRandom();
+  if (catalogOpen) renderCatalogThumbnails();
+  renderIdolButtons();
+}
+
 function toggleCatalog() {
   catalogOpen = !catalogOpen;
   catalogPanel.classList.toggle("open", catalogOpen);
   idolButtonsEl.classList.toggle("open", catalogOpen);
   if (catalogOpen) { renderCatalogThumbnails(); renderIdolButtons(); }
 }
+
 function renderCatalogThumbnails() {
   const pool = getCurrentPool();
   catalogPanel.innerHTML = "";
   pool.forEach(item => {
     const img = document.createElement("img");
-    img.src = item.thumb || item.raw;
+    img.src = item.thumb || item.raw || item.url;
     img.className = "catalog-thumb";
     img.title = item.folder;
-    img.onclick = () => displayUrl(item.raw, item.folder, true);
+    img.onclick = () => displayUrl(item.raw || item.url, item.folder, true);
     catalogPanel.appendChild(img);
   });
 }
 
-/* 🗂️ Category handling */
-async function loadCategories() {
-  try {
-    const res = await fetch(CAT_URL);
-    const text = await res.text();
-    categories = text.split("\n").map(l => l.trim()).filter(Boolean);
-    renderCategoryButtons();
-  } catch (e) {
-    console.error("Failed to load categories", e);
-  }
-}
-let categories = [];
-function toggleCategories() {
-  categoryOpen = !categoryOpen;
-  categoryPanel.classList.toggle("open", categoryOpen);
-  if (categoryOpen) renderCategoryButtons();
-}
-function renderCategoryButtons() {
-  categoryPanel.innerHTML = "";
-  categories.forEach(cat => {
+let currentIdolFilter = null; // tracks which idol is currently active in catalog
+
+function renderIdolButtons() {
+  idolButtonsEl.innerHTML = "";
+  if (!filteredCatalog.length) return;
+  const names = [...new Set(filteredCatalog.map(it => it.folder))];
+  names.forEach(name => {
     const btn = document.createElement("button");
-    btn.className = "category-btn";
-    btn.textContent = cat;
-    if (currentCategoryFilter === cat) btn.classList.add("active");
-    btn.onclick = () => toggleCategoryFilter(cat, btn);
-    categoryPanel.appendChild(btn);
+    btn.className = "idol-btn";
+    btn.textContent = name;
+    btn.onclick = () => toggleCatalogIdol(name, btn);
+    idolButtonsEl.appendChild(btn);
   });
 }
-function toggleCategoryFilter(cat, btn) {
-  if (currentCategoryFilter === cat) {
-    currentCategoryFilter = null;
+
+function toggleCatalogIdol(folderName, btn) {
+  if (currentIdolFilter === folderName) {
+    // 🔁 Same idol clicked again → show all thumbnails
+    currentIdolFilter = null;
     btn.classList.remove("active");
-  } else {
-    currentCategoryFilter = cat;
-    [...categoryPanel.children].forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
+    renderCatalogThumbnails();
+    return;
   }
-  seenImages.clear();
-  showRandom();
+
+  // 🎯 New idol selected
+  currentIdolFilter = folderName;
+  [...idolButtonsEl.children].forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+
+  const pool = filteredCatalog.filter(it => it.folder === folderName);
+  catalogPanel.innerHTML = "";
+  pool.forEach(item => {
+    const img = document.createElement("img");
+    img.src = item.thumb || item.raw || item.url;
+    img.className = "catalog-thumb";
+    img.title = item.folder;
+    img.onclick = () => displayUrl(item.raw || item.url, item.folder, true);
+    catalogPanel.appendChild(img);
+  });
+  scrollToIdol(folderName);
 }
 
-/* Load everything */
+function scrollToIdol(folderName) {
+  const thumbs = [...catalogPanel.querySelectorAll(".catalog-thumb")];
+  const target = thumbs.find(img => img.title.toLowerCase() === folderName.toLowerCase());
+  if (target) {
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    target.style.borderColor = "var(--accent)";
+    setTimeout(() => target.style.borderColor = "#333", 1200);
+  }
+}
+
+
+
 async function loadCatalog() {
   try {
     const r = await fetch(TXT_URL);
@@ -596,14 +597,17 @@ prevBtn.onclick = showPrevious;
 cycleToggle.onclick = toggleCycle;
 savedModeToggle.onclick = toggleSavedMode;
 saveBtn.onclick = saveCurrent;
-searchBtn.onclick = () => showRandom();
+searchBtn.onclick = () => selectFolder(searchInput.value);
 catalogToggle.onclick = toggleCatalog;
-categoryToggle.onclick = toggleCategories;
+
+searchInput.addEventListener("input", e => handleSearch(e.target.value));
+searchInput.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); selectFolder(searchInput.value); }});
+document.addEventListener("click", e => { if (!document.querySelector(".search-container").contains(e.target)) suggestionsEl.hidden = true; });
 
 window.addEventListener("keydown", e => {
   switch (e.key) {
     case "ArrowLeft": e.preventDefault(); showPrevious(); break;
-    case "ArrowRight": e.preventDefault(); showRandom(); break;
+    case "ArrowRight": e.preventDefault(); savedMode ? showNextSaved() : showRandom(); break;
     case "ArrowDown": e.preventDefault(); saveCurrent(); break;
     case "ArrowUp": e.preventDefault(); toggleSavedMode(); break;
   }
@@ -611,7 +615,6 @@ window.addEventListener("keydown", e => {
 
 loadSaved();
 loadCatalog();
-loadCategories();
 </script>
 </body>
 </html>
