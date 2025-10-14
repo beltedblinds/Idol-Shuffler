@@ -599,8 +599,18 @@ function toggleCatalog() {
   catalogOpen = !catalogOpen;
   catalogPanel.classList.toggle("open", catalogOpen);
   idolButtonsEl.classList.toggle("open", catalogOpen);
-  if (catalogOpen) { renderCatalogThumbnails(); renderIdolButtons(); }
+
+  // 🧠 Ensure category panel shifts right if it's already open
+  if (categoryPanel.classList.contains("open")) {
+    categoryPanel.style.left = idolButtonsEl.classList.contains("open") ? "200px" : "0";
+  }
+
+  if (catalogOpen) {
+    renderCatalogThumbnails();
+    renderIdolButtons();
+  }
 }
+
 
 function renderCatalogThumbnails() {
   const pool = getCurrentPool();
