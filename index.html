@@ -312,6 +312,7 @@ let savedMode = false;
 let cycleId = null;
 let catalogOpen = false;
 const CYCLE_MS = 7000;
+let seenImages = new Set();
 
 /* DOM */
 const imgEl = document.getElementById("idolImage");
@@ -369,10 +370,26 @@ function getCurrentPool() {
 function showRandom() {
   const pool = getCurrentPool();
   if (!pool.length) return;
-  const i = Math.floor(Math.random() * pool.length);
-  const item = pool[i];
+
+  // Reset if we've seen all images in this pool
+  if (seenImages.size >= pool.length) {
+    seenImages.clear();
+  }
+
+  // Filter to only unseen images
+  const unseen = pool.filter(item => !seenImages.has(item.raw || item.url));
+
+  // Pick one unseen at random
+  const i = Math.floor(Math.random() * unseen.length);
+  const item = unseen[i];
+
+  // Mark as seen
+  seenImages.add(item.raw || item.url);
+
+  // Display
   displayUrl(item.raw || item.url, item.folder, true);
-  if (savedMode) savedIndex = i;
+
+  if (savedMode) savedIndex = pool.indexOf(item);
 }
 
 function showPrevious() {
@@ -489,6 +506,10 @@ function selectFolder(folder) {
   }
   suggestionsEl.hidden = true;
   searchInput.value = folder;
+
+  //🔄 Reset seen tracker when switching folders
+  seenImages.clear();
+  
   showRandom();
   if (catalogOpen) renderCatalogThumbnails();
 }
