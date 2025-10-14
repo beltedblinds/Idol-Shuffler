@@ -302,6 +302,54 @@
     border-color: var(--accent);
     color: var(--accent-hover);
   }
+
+  /* 🗂️ Category Panel (left of idol buttons) */
+#categoryPanel {
+  position: fixed;
+  top: 0;
+  left: 200px; /* appears beside idol buttons */
+  width: 0;
+  height: 100%;
+  overflow-y: auto;
+  background: #111;
+  border-right: 1px solid #333;
+  transition: width 0.3s ease;
+  padding: 10px;
+  box-sizing: border-box;
+  z-index: 998;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#categoryPanel.open {
+  width: 160px;
+}
+
+.category-btn {
+  background: var(--card);
+  border: 1px solid #333;
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.category-btn:hover {
+  background: #272727;
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+
+.category-btn.active {
+  background: #272727;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+  
 </style>
 </head>
 <body>
@@ -319,10 +367,14 @@
   <div class="toggle" id="cycleToggle"><span id="cycleLabel">Cycle Off</span></div>
   <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
   <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog</span></div>
+  <div class="toggle" id="categoryToggle"><span id="categoryLabel">Categories</span></div>
 </div>
 
 <!-- 🩷 Idol buttons now floating on left -->
 <div id="idolButtons"></div>
+
+<!-- 🌸 Category panel (slides out beside idol buttons) -->
+<div id="categoryPanel"></div>
 
 <div class="image-wrapper">
   <button id="saveBtn" title="Save / Unsave">💾</button>
@@ -581,7 +633,66 @@ function scrollToIdol(folderName) {
   }
 }
 
+/* 🩷 Category Handling */
+const CAT_URL = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/categories.txt";
+let categories = [];
+let categoryOpen = false;
+let currentCategoryFilter = null;
 
+const categoryPanel = document.getElementById("categoryPanel");
+const categoryToggle = document.getElementById("categoryToggle");
+
+async function loadCategories() {
+  try {
+    const res = await fetch(CAT_URL);
+    const text = await res.text();
+    categories = text.split("\n").map(l => l.trim()).filter(Boolean);
+  } catch (e) {
+    console.error("Failed to load categories", e);
+  }
+}
+
+function toggleCategories() {
+  categoryOpen = !categoryOpen;
+  categoryPanel.classList.toggle("open", categoryOpen);
+  if (categoryOpen) renderCategoryButtons();
+}
+
+function renderCategoryButtons() {
+  categoryPanel.innerHTML = "";
+  categories.forEach(cat => {
+    const btn = document.createElement("button");
+    btn.className = "category-btn";
+    btn.textContent = cat;
+    if (currentCategoryFilter === cat) btn.classList.add("active");
+    btn.onclick = () => toggleCategoryFilter(cat, btn);
+    categoryPanel.appendChild(btn);
+  });
+}
+
+function toggleCategoryFilter(cat, btn) {
+  if (currentCategoryFilter === cat) {
+    currentCategoryFilter = null;
+    btn.classList.remove("active");
+  } else {
+    currentCategoryFilter = cat;
+    [...categoryPanel.children].forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+  }
+  seenImages.clear();
+  applyFilters();
+}
+
+/* Combine idol + category filters */
+function applyFilters() {
+  if (currentCategoryFilter) {
+    filteredCatalog = catalog.filter(it => it.category === currentCategoryFilter);
+  } else {
+    filteredCatalog = [];
+  }
+  showRandom();
+  if (catalogOpen) renderCatalogThumbnails();
+}
 
 async function loadCatalog() {
   try {
@@ -599,6 +710,8 @@ savedModeToggle.onclick = toggleSavedMode;
 saveBtn.onclick = saveCurrent;
 searchBtn.onclick = () => selectFolder(searchInput.value);
 catalogToggle.onclick = toggleCatalog;
+categoryToggle.onclick = toggleCategories;
+
 
 searchInput.addEventListener("input", e => handleSearch(e.target.value));
 searchInput.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); selectFolder(searchInput.value); }});
@@ -615,6 +728,7 @@ window.addEventListener("keydown", e => {
 
 loadSaved();
 loadCatalog();
+loadCategories();
 </script>
 </body>
 </html>
