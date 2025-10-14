@@ -301,33 +301,45 @@
     border-color: var(--accent);
   }
 
-  /* 🌸 Idol buttons (left side) */
+/* 🌸 Idol buttons (left side) */
 #idolButtons {
   position: fixed;
   top: 0;
   left: 0;
   width: 0;
   height: 100%;
-  overflow: hidden; /* 🚫 hide scrollbar when collapsed */
+  overflow: hidden; /* ✅ hide content and scrollbar */
   background: #111;
-  border-right: 1px solid #333;
+  border-right: none; /* hide border until open */
   transition: width 0.3s ease;
-  padding: 10px;
+  padding: 0;
   box-sizing: border-box;
   z-index: 999;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  visibility: hidden; /* hides content */
-  pointer-events: none; /* disables clicking */
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Hide scrollbar completely in all browsers */
+#idolButtons::-webkit-scrollbar {
+  display: none;
+}
+#idolButtons {
+  -ms-overflow-style: none;  /* IE & Edge */
+  scrollbar-width: none;     /* Firefox */
 }
 
 #idolButtons.open {
   width: 200px;
-  overflow-y: auto; /* ✅ scrollbar visible only when open */
+  padding: 10px;
+  border-right: 1px solid #333;
+  overflow-y: auto; /* ✅ scrollbar appears when open */
   visibility: visible;
   pointer-events: auto;
 }
+
 
   .idol-btn {
     background: var(--card);
