@@ -301,28 +301,33 @@
     border-color: var(--accent);
   }
 
-  /* 🌸 Idol buttons (moved to left side) */
-  #idolButtons {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 0;
-    height: 100%;
-    overflow-y: auto;
-    background: #111;
-    border-right: 1px solid #333;
-    transition: width 0.3s ease;
-    padding: 10px;
-    box-sizing: border-box;
-    z-index: 999;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
+  /* 🌸 Idol buttons (left side) */
+#idolButtons {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 100%;
+  overflow: hidden; /* 🚫 hide scrollbar when collapsed */
+  background: #111;
+  border-right: 1px solid #333;
+  transition: width 0.3s ease;
+  padding: 10px;
+  box-sizing: border-box;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  visibility: hidden; /* hides content */
+  pointer-events: none; /* disables clicking */
+}
 
-  #idolButtons.open {
-    width: 200px;
-  }
+#idolButtons.open {
+  width: 200px;
+  overflow-y: auto; /* ✅ scrollbar visible only when open */
+  visibility: visible;
+  pointer-events: auto;
+}
 
   .idol-btn {
     background: var(--card);
