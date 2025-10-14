@@ -436,6 +436,7 @@ let cycleId = null;
 let catalogOpen = false;
 const CYCLE_MS = 7000;
 let seenImages = new Set();
+let currentMediaUrl = ""; // 🩷 track current image/video URL
 
 /* DOM */
 const imgEl = document.getElementById("idolImage");
@@ -494,13 +495,19 @@ function displayUrl(url, folder, pushHist = true) {
 
   wrapper.appendChild(media);
   labelEl.textContent = folder || "";
-  saveBtn.classList.toggle("saved", !!saved.find(s => s.url === url));
+
+  // 🩷 Track the current media
+  currentMediaUrl = url;
+
+  // Update save button state
+  saveBtn.classList.toggle("saved", !!saved.find(s => s.url === currentMediaUrl));
 
   if (pushHist && (!history.length || history[history.length - 1] !== url)) {
     history.push(url);
     historyPos = history.length - 1;
   }
 }
+
 
 function getCurrentPool() {
   if (savedMode && saved.length) return saved;
@@ -555,16 +562,24 @@ function toggleSavedMode() {
 
 /* Saving, Search, Catalog same as before */
 function saveCurrent() {
-  const url = imgEl.src;
+  const url = currentMediaUrl;
   if (!url) return;
+
   const found = catalog.find(it => it.raw === url || it.url === url);
   const idx = saved.findIndex(s => s.url === url);
-  if (idx !== -1) saved.splice(idx, 1);
-  else saved.push({ url, folder: found ? found.folder : "" });
+
+  if (idx !== -1) {
+    saved.splice(idx, 1);
+  } else {
+    saved.push({ url, folder: found ? found.folder : "" });
+  }
+
   persistSaved();
   renderSaved();
   saveBtn.classList.toggle("saved", idx === -1);
 }
+
+  
 function loadSaved() { try { saved = JSON.parse(localStorage.getItem("idol_saved")) || []; } catch { saved = []; } renderSaved(); }
 function persistSaved() { localStorage.setItem("idol_saved", JSON.stringify(saved)); }
 function renderSaved() {
