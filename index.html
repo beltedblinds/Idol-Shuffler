@@ -587,11 +587,18 @@ function renderSaved() {
   saved.forEach((it, i) => {
     const div = document.createElement("div");
     div.className = "saved-item";
-    div.innerHTML = `<img src="${it.url}"><div class='saved-badge'>${i+1}</div>`;
+
+    const isVideo = /\.(mp4|webm|mov)$/i.test(it.url);
+    const mediaTag = isVideo
+      ? `<video src="${it.url}" autoplay loop muted playsinline></video>`
+      : `<img src="${it.url}">`;
+
+    div.innerHTML = `${mediaTag}<div class='saved-badge'>${i + 1}</div>`;
     div.onclick = () => { savedIndex = i; displayUrl(it.url, it.folder, true); };
     savedListEl.appendChild(div);
   });
 }
+
 
 function handleSearch(input) {
   const term = input.trim().toLowerCase();
