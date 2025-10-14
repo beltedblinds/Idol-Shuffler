@@ -229,24 +229,63 @@
   }
 
   /* 🧭 Catalog panel (right) */
-  #catalogPanel {
-    position: fixed;
-    right: 0;
-    top: 0;
-    width: 0;
-    height: 100%;
-    overflow-y: auto;
-    background: #111;
-    border-left: 1px solid #333;
-    transition: width 0.3s ease;
-    padding: 10px;
-    box-sizing: border-box;
-    z-index: 999;
-  }
+  /* 🗂️ Catalog panel (right side) */
+#catalogPanel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 0;
+  background: #111;
+  border-left: none;
+  padding: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  z-index: 999;
+  transition: all 0.3s ease;
+  visibility: hidden;
+  pointer-events: none;
+}
 
-  #catalogPanel.open {
-    width: 280px;
-  }
+#catalogPanel.open {
+  width: 280px;
+  padding: 10px;
+  border-left: 1px solid #333;
+  overflow-y: auto;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* 🩷 Category panel (between idol buttons and main area) */
+#categoryPanel {
+  position: fixed;
+  top: 0;
+  left: 200px;
+  height: 100%;
+  width: 0;
+  background: #111;
+  border-right: none;
+  padding: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  z-index: 998;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all 0.3s ease;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#categoryPanel.open {
+  width: 160px;
+  padding: 10px;
+  border-right: 1px solid #333;
+  overflow-y: auto;
+  visibility: visible;
+  pointer-events: auto;
+}
+
 
   .catalog-thumb {
     width: 100%;
@@ -302,29 +341,6 @@
     border-color: var(--accent);
     color: var(--accent-hover);
   }
-
-  /* 🗂️ Category Panel (left of idol buttons) */
-#categoryPanel {
-  position: fixed;
-  top: 0;
-  left: 200px; /* appears beside idol buttons */
-  width: 0;
-  height: 100%;
-  overflow-y: auto;
-  background: #111;
-  border-right: 1px solid #333;
-  transition: width 0.3s ease;
-  padding: 10px;
-  box-sizing: border-box;
-  z-index: 998;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-#categoryPanel.open {
-  width: 160px;
-}
 
 .category-btn {
   background: var(--card);
