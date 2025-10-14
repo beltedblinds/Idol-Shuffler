@@ -421,7 +421,10 @@
 <div id="catalogPanel"></div>
 
 <script>
-const TXT_URL = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links.txt";
+// 🖼️ + 🎥 Combined sources
+const MEDIA_URL = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links.txt";
+const VIDEO_URL = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_video_links.txt";
+  
 let catalog = [];
 let filteredCatalog = [];
 let saved = [];
@@ -464,21 +467,39 @@ function parseCatalogText(text) {
 
 function displayUrl(url, folder, pushHist = true) {
   if (!url) return;
-  const nextImg = new Image();
-  nextImg.src = url;
-  nextImg.onload = () => {
-    imgEl.style.opacity = "0";
-    setTimeout(() => {
-      imgEl.src = url;
-      labelEl.textContent = folder || "";
-      saveBtn.classList.toggle("saved", !!saved.find(s => s.url === url));
-      imgEl.style.opacity = "1";
-    }, 100);
-    if (pushHist && (!history.length || history[history.length - 1] !== url)) {
-      history.push(url);
-      historyPos = history.length - 1;
-    }
-  };
+
+  const wrapper = document.querySelector(".image-wrapper");
+  wrapper.innerHTML = ''; // clear old media
+  wrapper.appendChild(saveBtn); // keep save button on top
+
+  let media;
+  if (url.match(/\.(mp4|webm|mov)$/i)) {
+    media = document.createElement("video");
+    media.src = url;
+    media.autoplay = true;
+    media.loop = true;
+    media.muted = true;
+    media.playsInline = true;
+    media.style.maxWidth = "100%";
+    media.style.maxHeight = "78vh";
+    media.style.borderRadius = "16px";
+  } else {
+    media = document.createElement("img");
+    media.src = url;
+    media.style.maxWidth = "100%";
+    media.style.maxHeight = "78vh";
+    media.style.borderRadius = "16px";
+    media.style.transition = "opacity 0.3s ease-in-out";
+  }
+
+  wrapper.appendChild(media);
+  labelEl.textContent = folder || "";
+  saveBtn.classList.toggle("saved", !!saved.find(s => s.url === url));
+
+  if (pushHist && (!history.length || history[history.length - 1] !== url)) {
+    history.push(url);
+    historyPos = history.length - 1;
+  }
 }
 
 function getCurrentPool() {
@@ -751,12 +772,20 @@ function applyFilters() {
 
 async function loadCatalog() {
   try {
-    const r = await fetch(TXT_URL);
-    const t = await r.text();
-    catalog = parseCatalogText(t);
+    const [r1, r2] = await Promise.all([
+      fetch(MEDIA_URL),
+      fetch(VIDEO_URL)
+    ]);
+    const [t1, t2] = await Promise.all([r1.text(), r2.text()]);
+    const combined = t1 + "\n" + t2;
+    catalog = parseCatalogText(combined);
     showRandom();
-  } catch { labelEl.textContent = "Error loading gallery list."; }
+  } catch (e) {
+    console.error("Error loading gallery:", e);
+    labelEl.textContent = "Error loading gallery list.";
+  }
 }
+
 
 randomBtn.onclick = showRandom;
 prevBtn.onclick = showPrevious;
