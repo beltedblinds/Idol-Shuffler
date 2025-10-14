@@ -803,14 +803,26 @@ function renderCategoryButtons(list = categories) {
 }
 
 function toggleCategoryFilter(cat, btn) {
-  // 🩷 Handle deselect
+  // 🩷 Handle deselect (unclick category)
   if (currentCategoryFilter === cat) {
     currentCategoryFilter = null;
     btn.classList.remove("active");
     applyFilters();
 
-    // ✅ Restore all categories and idols if no filter active
-    renderCategoryButtons();
+    // ✅ If an idol is still selected, show only that idol’s categories
+    if (currentIdolFilter) {
+      const idolCats = [...new Set(
+        catalog
+          .filter(it => it.folder === currentIdolFilter && it.category)
+          .map(it => it.category)
+      )];
+      renderCategoryButtons(idolCats);
+    } else {
+      // ✅ Otherwise, restore all categories
+      renderCategoryButtons();
+    }
+
+    // ✅ Always restore full idol list (don’t hide others)
     renderIdolButtons();
     return;
   }
@@ -822,8 +834,7 @@ function toggleCategoryFilter(cat, btn) {
 
   applyFilters();
 
-  // 🩷 Limit idols to those that appear in this category, but
-  // ✅ if an idol is already selected, keep ALL idols visible (don’t hide the rest)
+  // 🩷 Limit idols to only those in this category, unless an idol is already active
   const idolsWithCat = [...new Set(
     catalog
       .filter(it =>
@@ -832,9 +843,9 @@ function toggleCategoryFilter(cat, btn) {
       )
       .map(it => it.folder)
   )];
-
   if (!currentIdolFilter) renderIdolButtons(idolsWithCat);
 }
+
 
 
 
