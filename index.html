@@ -529,6 +529,8 @@ function renderCatalogThumbnails() {
   });
 }
 
+let currentIdolFilter = null; // tracks which idol is currently active in catalog
+
 function renderIdolButtons() {
   idolButtonsEl.innerHTML = "";
   if (!filteredCatalog.length) return;
@@ -537,13 +539,25 @@ function renderIdolButtons() {
     const btn = document.createElement("button");
     btn.className = "idol-btn";
     btn.textContent = name;
-    btn.onclick = () => filterCatalogByIdol(name);
+    btn.onclick = () => toggleCatalogIdol(name, btn);
     idolButtonsEl.appendChild(btn);
   });
 }
 
-/* 🩷 Filter catalog thumbnails by clicked idol */
-function filterCatalogByIdol(folderName) {
+function toggleCatalogIdol(folderName, btn) {
+  if (currentIdolFilter === folderName) {
+    // 🔁 Same idol clicked again → show all thumbnails
+    currentIdolFilter = null;
+    btn.classList.remove("active");
+    renderCatalogThumbnails();
+    return;
+  }
+
+  // 🎯 New idol selected
+  currentIdolFilter = folderName;
+  [...idolButtonsEl.children].forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+
   const pool = filteredCatalog.filter(it => it.folder === folderName);
   catalogPanel.innerHTML = "";
   pool.forEach(item => {
@@ -566,6 +580,7 @@ function scrollToIdol(folderName) {
     setTimeout(() => target.style.borderColor = "#333", 1200);
   }
 }
+
 
 
 async function loadCatalog() {
