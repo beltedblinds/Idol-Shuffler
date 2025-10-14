@@ -25,6 +25,7 @@
     min-height: 100vh;
     padding: 20px;
     box-sizing: border-box;
+    overflow: hidden;
   }
 
   h1 {
@@ -134,13 +135,6 @@
     color: var(--accent-hover);
   }
 
-  .toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    user-select: none;
-  }
-
   .image-wrapper {
     position: relative;
     max-width: 92vw;
@@ -237,58 +231,49 @@
     border-radius: 999px;
   }
 
-  /* 🧭 Catalog styles */
-  #catalogPanel {
+  /* 🧭 Catalog wrapper with left sidebar */
+  #catalogWrapper {
     position: fixed;
-    right: 0;
     top: 0;
+    right: 0;
     width: 0;
     height: 100%;
-    overflow-y: auto;
+    display: flex;
     background: #111;
     border-left: 1px solid #333;
     transition: width 0.3s ease;
-    padding: 10px;
-    box-sizing: border-box;
+    overflow: hidden;
     z-index: 999;
   }
 
-  #catalogPanel.open {
-    width: 280px;
+  #catalogWrapper.open {
+    width: 80%;
+    max-width: 1100px;
   }
 
-  .catalog-thumb {
-    width: 100%;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    transition: transform 0.2s, border 0.2s;
-    border: 1px solid #333;
-  }
-
-  .catalog-thumb:hover {
-    transform: scale(1.03);
-    border-color: var(--accent);
-  }
-
-  /* 🌸 Idol buttons bar */
+  /* Left scrollable idol button list */
   #idolButtons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    justify-content: center;
-    margin-bottom: 10px;
+    width: 180px;
+    background: #1a1a1a;
+    border-right: 1px solid #333;
+    padding: 8px;
+    box-sizing: border-box;
+    overflow-y: auto;
   }
 
   .idol-btn {
-    background: var(--card);
-    border: 1px solid #333;
-    color: var(--text);
+    display: block;
+    width: 100%;
+    margin: 4px 0;
     padding: 6px 10px;
     border-radius: 8px;
     font-size: 13px;
+    background: var(--card);
+    border: 1px solid #333;
+    color: var(--text);
     cursor: pointer;
     transition: all 0.2s ease;
+    text-align: left;
   }
 
   .idol-btn:hover {
@@ -296,6 +281,31 @@
     border-color: var(--accent);
     color: var(--accent-hover);
   }
+
+  /* Catalog thumbnail grid */
+  #catalogPanel {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+    padding: 10px;
+    overflow-y: auto;
+    background: #111;
+  }
+
+  .catalog-thumb {
+    width: 100%;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid #333;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+
+  .catalog-thumb:hover {
+    transform: scale(1.03);
+    border-color: var(--accent);
+  }
+
 </style>
 </head>
 <body>
@@ -315,8 +325,6 @@
   <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog</span></div>
 </div>
 
-<div id="idolButtons"></div>
-
 <div class="image-wrapper">
   <button id="saveBtn" title="Save / Unsave">💾</button>
   <img id="idolImage" src="" alt="Idol" />
@@ -325,265 +333,93 @@
 <div id="label"></div>
 <div id="savedList"></div>
 
-<div id="catalogPanel"></div>
+<!-- 📂 Catalog area (with idol buttons + thumbnails) -->
+<div id="catalogWrapper">
+  <div id="idolButtons"></div>
+  <div id="catalogPanel"></div>
+</div>
 
 <script>
 const TXT_URL = "https://raw.githubusercontent.com/beltedblinds/idols-media-01/main/idol_gallery_links.txt";
-let catalog = [];
-let filteredCatalog = [];
-let saved = [];
-let history = [];
-let historyPos = -1;
-let savedIndex = 0;
-let savedMode = false;
-let cycleId = null;
-let catalogOpen = false;
-const CYCLE_MS = 7000;
+let catalog = [], filteredCatalog = [], saved = [], history = [];
+let historyPos = -1, savedIndex = 0, savedMode = false, cycleId = null, catalogOpen = false;
 let seenImages = new Set();
+const CYCLE_MS = 7000;
 
-/* DOM */
+/* DOM refs */
 const imgEl = document.getElementById("idolImage");
 const labelEl = document.getElementById("label");
-const savedListEl = document.getElementById("savedList");
-const randomBtn = document.getElementById("randomBtn");
-const prevBtn = document.getElementById("prevBtn");
-const cycleToggle = document.getElementById("cycleToggle");
-const cycleLabel = document.getElementById("cycleLabel");
-const saveBtn = document.getElementById("saveBtn");
-const savedModeToggle = document.getElementById("savedModeToggle");
-const savedModeLabel = document.getElementById("savedModeLabel");
-const searchInput = document.getElementById("searchInput");
-const searchBtn = document.getElementById("searchBtn");
-const suggestionsEl = document.getElementById("suggestions");
+const catalogWrapper = document.getElementById("catalogWrapper");
 const catalogPanel = document.getElementById("catalogPanel");
-const catalogToggle = document.getElementById("catalogToggle");
 const idolButtonsEl = document.getElementById("idolButtons");
 
-/* 📁 Updated parser for 3-field format */
+/* Load & show */
 function parseCatalogText(text) {
-  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-  return lines.map(line => {
-    const parts = line.split(",").map(p => p.trim());
-    return { folder: parts[0], raw: parts[1], thumb: parts[2] };
-  }).filter(e => e.folder && e.raw && e.thumb)
-    .sort((a,b)=>a.folder.localeCompare(b.folder));
+  return text.split("\n").map(l=>l.trim()).filter(Boolean).map(line=>{
+    const [folder, raw, thumb] = line.split(",").map(s=>s.trim());
+    return { folder, raw, thumb };
+  }).filter(e=>e.folder && e.raw && e.thumb);
 }
 
-/* Core display and randomization (unchanged) */
-function displayUrl(url, folder, pushHist = true) {
-  if (!url) return;
-  const nextImg = new Image();
-  nextImg.src = url;
-  nextImg.onload = () => {
-    imgEl.style.opacity = "0";
-    setTimeout(() => {
-      imgEl.src = url;
-      labelEl.textContent = folder || "";
-      saveBtn.classList.toggle("saved", !!saved.find(s => s.url === url));
-      imgEl.style.opacity = "1";
-    }, 100);
-    if (pushHist && (!history.length || history[history.length - 1] !== url)) {
-      history.push(url);
-      historyPos = history.length - 1;
-    }
-  };
-  nextImg.onerror = () => console.warn("Failed to load image:", url);
+function displayUrl(url, folder) {
+  const next = new Image();
+  next.src = url;
+  next.onload = () => { imgEl.style.opacity="0"; setTimeout(()=>{imgEl.src=url;labelEl.textContent=folder||"";imgEl.style.opacity="1";},100); };
 }
 
 function getCurrentPool() {
   if (savedMode && saved.length) return saved;
-  if (filteredCatalog.length) return filteredCatalog;
-  return catalog;
+  return filteredCatalog.length ? filteredCatalog : catalog;
 }
 
 function showRandom() {
-  const pool = getCurrentPool();
-  if (!pool.length) return;
-  if (seenImages.size >= pool.length) seenImages.clear();
-  const unseen = pool.filter(item => !seenImages.has(item.raw || item.url));
-  const item = unseen[Math.floor(Math.random() * unseen.length)];
-  seenImages.add(item.raw || item.url);
-  displayUrl(item.raw || item.url, item.folder, true);
-  if (savedMode) savedIndex = pool.indexOf(item);
+  const pool=getCurrentPool(); if(!pool.length)return;
+  if(seenImages.size>=pool.length) seenImages.clear();
+  const unseen=pool.filter(it=>!seenImages.has(it.raw));
+  const item=unseen[Math.floor(Math.random()*unseen.length)];
+  seenImages.add(item.raw); displayUrl(item.raw,item.folder);
 }
 
-function showPrevious() {
-  if (savedMode && saved.length) {
-    savedIndex = (savedIndex - 1 + saved.length) % saved.length;
-    displayUrl(saved[savedIndex].url, saved[savedIndex].folder, true);
-  } else if (historyPos > 0) {
-    historyPos--;
-    const url = history[historyPos];
-    const found = catalog.find(it => it.raw === url || it.url === url);
-    displayUrl(url, found ? found.folder : "", false);
-  }
-}
-
-function showNextSaved() {
-  if (!saved.length) return;
-  savedIndex = (savedIndex + 1) % saved.length;
-  displayUrl(saved[savedIndex].url, saved[savedIndex].folder, true);
-}
-
-/* Cycle + Saved logic */
-function startCycle() {
-  if (cycleId) clearInterval(cycleId);
-  cycleId = setInterval(() => {
-    if (savedMode && saved.length) showNextSaved();
-    else showRandom();
-  }, CYCLE_MS);
-  cycleLabel.textContent = "Cycle On";
-}
-
-function stopCycle() { clearInterval(cycleId); cycleId = null; cycleLabel.textContent = "Cycle Off"; }
-function toggleCycle() { cycleId ? stopCycle() : startCycle(); }
-function toggleSavedMode() {
-  savedMode = !savedMode;
-  savedModeLabel.textContent = "Saved Mode: " + (savedMode ? "On" : "Off");
-}
-
-/* Saving */
-function saveCurrent() {
-  const url = imgEl.src;
-  if (!url) return;
-  const found = catalog.find(it => it.raw === url || it.url === url);
-  const idx = saved.findIndex(s => s.url === url);
-  if (idx !== -1) saved.splice(idx, 1);
-  else saved.push({ url, folder: found ? found.folder : "" });
-  persistSaved();
-  renderSaved();
-  saveBtn.classList.toggle("saved", idx === -1);
-}
-function loadSaved() { try { saved = JSON.parse(localStorage.getItem("idol_saved")) || []; } catch { saved = []; } renderSaved(); }
-function persistSaved() { localStorage.setItem("idol_saved", JSON.stringify(saved)); }
-function renderSaved() {
-  savedListEl.innerHTML = "";
-  saved.forEach((it, i) => {
-    const div = document.createElement("div");
-    div.className = "saved-item";
-    div.innerHTML = `<img src="${it.url}"><div class='saved-badge'>${i+1}</div>`;
-    div.onclick = () => { savedIndex = i; displayUrl(it.url, it.folder, true); };
-    savedListEl.appendChild(div);
-  });
-}
-
-/* 🔍 Search logic */
-function handleSearch(input) {
-  const term = input.trim().toLowerCase();
-  if (!term) { filteredCatalog = []; showRandom(); suggestionsEl.hidden = true; return; }
-  const matches = [...new Set(catalog.map(it => it.folder))].filter(f => f.toLowerCase().includes(term));
-  showSuggestions(matches, term);
-}
-
-function showSuggestions(matches, term) {
-  suggestionsEl.innerHTML = "";
-  if (!matches.length) {
-    suggestionsEl.innerHTML = `<div class="no-result">No results for "${term}"</div>`;
-    suggestionsEl.hidden = false;
-    return;
-  }
-  matches.forEach(folder => {
-    const div = document.createElement("div");
-    div.className = "suggestion";
-    div.textContent = folder;
-    div.onclick = () => selectFolder(folder);
-    suggestionsEl.appendChild(div);
-  });
-  suggestionsEl.hidden = false;
-}
-
-/* 📂 Catalog logic (unchanged) */
-function selectFolder(folder) {
-  const match = folder.trim().toLowerCase();
-  filteredCatalog = catalog.filter(it => it.folder.toLowerCase() === match);
-  if (!filteredCatalog.length) {
-    filteredCatalog = catalog.filter(it => it.folder.toLowerCase().includes(match));
-  }
-  suggestionsEl.hidden = true;
-  searchInput.value = folder;
-  seenImages.clear();
-  showRandom();
-  if (catalogOpen) renderCatalogThumbnails();
-  renderIdolButtons(); // 🆕 generate sub-idol buttons
-}
-
-function toggleCatalog() {
-  catalogOpen = !catalogOpen;
-  catalogPanel.classList.toggle("open", catalogOpen);
-  if (catalogOpen) renderCatalogThumbnails();
-}
-
-function renderCatalogThumbnails() {
-  const pool = getCurrentPool();
-  catalogPanel.innerHTML = "";
-  pool.forEach(item => {
-    const img = document.createElement("img");
-    img.src = item.thumb || item.raw || item.url;
-    img.className = "catalog-thumb";
-    img.title = item.folder;
-    img.onclick = () => displayUrl(item.raw || item.url, item.folder, true);
+/* Catalog display */
+function renderCatalogThumbnails(){
+  const pool=getCurrentPool(); catalogPanel.innerHTML="";
+  pool.forEach(it=>{
+    const img=document.createElement("img");
+    img.src=it.thumb; img.className="catalog-thumb"; img.title=it.folder;
+    img.onclick=()=>displayUrl(it.raw,it.folder);
     catalogPanel.appendChild(img);
   });
 }
 
-/* 🌸 Idol sub-buttons logic */
-function renderIdolButtons() {
-  idolButtonsEl.innerHTML = "";
-  if (!filteredCatalog.length) return;
-  const names = [...new Set(filteredCatalog.map(it => it.folder))];
-  names.forEach(name => {
-    const btn = document.createElement("button");
-    btn.className = "idol-btn";
-    btn.textContent = name;
-    btn.onclick = () => scrollToIdol(name);
+/* Idol list */
+function renderIdolButtons(){
+  idolButtonsEl.innerHTML="";
+  const idols=[...new Set(catalog.map(it=>it.folder))].sort();
+  idols.forEach(name=>{
+    const btn=document.createElement("button");
+    btn.className="idol-btn"; btn.textContent=name;
+    btn.onclick=()=>selectFolder(name);
     idolButtonsEl.appendChild(btn);
   });
 }
 
-/* 🪄 Scroll to idol in catalog */
-function scrollToIdol(folderName) {
-  const thumbs = [...catalogPanel.querySelectorAll(".catalog-thumb")];
-  const target = thumbs.find(img => img.title.toLowerCase() === folderName.toLowerCase());
-  if (target) {
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
-    target.style.borderColor = "var(--accent)";
-    setTimeout(() => target.style.borderColor = "#333", 1200);
-  }
+/* Toggle catalog */
+function toggleCatalog(){
+  catalogOpen=!catalogOpen;
+  catalogWrapper.classList.toggle("open",catalogOpen);
+  if(catalogOpen){renderCatalogThumbnails();renderIdolButtons();}
 }
 
-/* Loader */
-async function loadCatalog() {
-  try {
-    const r = await fetch(TXT_URL);
-    const t = await r.text();
-    catalog = parseCatalogText(t);
-    showRandom();
-  } catch { labelEl.textContent = "Error loading gallery list."; }
+async function loadCatalog(){
+  const r=await fetch(TXT_URL); const t=await r.text();
+  catalog=parseCatalogText(t); showRandom();
 }
 
 /* Listeners */
-randomBtn.onclick = showRandom;
-prevBtn.onclick = showPrevious;
-cycleToggle.onclick = toggleCycle;
-savedModeToggle.onclick = toggleSavedMode;
-saveBtn.onclick = saveCurrent;
-searchBtn.onclick = () => selectFolder(searchInput.value);
-catalogToggle.onclick = toggleCatalog;
+document.getElementById("catalogToggle").onclick=toggleCatalog;
+document.getElementById("randomBtn").onclick=showRandom;
+document.getElementById("prevBtn").onclick=()=>historyPos>0&&displayUrl(history[--historyPos]);
 
-searchInput.addEventListener("input", e => handleSearch(e.target.value));
-searchInput.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); selectFolder(searchInput.value); }});
-document.addEventListener("click", e => { if (!document.querySelector(".search-container").contains(e.target)) suggestionsEl.hidden = true; });
-
-window.addEventListener("keydown", e => {
-  switch (e.key) {
-    case "ArrowLeft": e.preventDefault(); showPrevious(); break;
-    case "ArrowRight": e.preventDefault(); savedMode ? showNextSaved() : showRandom(); break;
-    case "ArrowDown": e.preventDefault(); saveCurrent(); break;
-    case "ArrowUp": e.preventDefault(); toggleSavedMode(); break;
-  }
-});
-
-loadSaved();
 loadCatalog();
 </script>
 </body>
