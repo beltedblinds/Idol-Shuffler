@@ -537,9 +537,24 @@ function renderIdolButtons() {
     const btn = document.createElement("button");
     btn.className = "idol-btn";
     btn.textContent = name;
-    btn.onclick = () => scrollToIdol(name);
+    btn.onclick = () => filterCatalogByIdol(name);
     idolButtonsEl.appendChild(btn);
   });
+}
+
+/* 🩷 Filter catalog thumbnails by clicked idol */
+function filterCatalogByIdol(folderName) {
+  const pool = filteredCatalog.filter(it => it.folder === folderName);
+  catalogPanel.innerHTML = "";
+  pool.forEach(item => {
+    const img = document.createElement("img");
+    img.src = item.thumb || item.raw || item.url;
+    img.className = "catalog-thumb";
+    img.title = item.folder;
+    img.onclick = () => displayUrl(item.raw || item.url, item.folder, true);
+    catalogPanel.appendChild(img);
+  });
+  scrollToIdol(folderName);
 }
 
 function scrollToIdol(folderName) {
@@ -551,6 +566,7 @@ function scrollToIdol(folderName) {
     setTimeout(() => target.style.borderColor = "#333", 1200);
   }
 }
+
 
 async function loadCatalog() {
   try {
