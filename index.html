@@ -840,15 +840,18 @@ function toggleCategoryFilter(cat, btn) {
 
   applyFilters();
 
-  // 🩷 Limit idols to only those in this category, unless an idol is already active
-  const idolsWithCat = [...new Set(
-    catalog
-      .filter(it =>
-        it.category &&
-        it.category.toLowerCase() === currentCategoryFilter.toLowerCase()
-      )
-      .map(it => it.folder)
-  )];
+  // 🩷 Limit idols to only those in this category, respecting search term
+const searchTerm = searchInput.value.trim().toLowerCase();
+const idolsWithCat = [...new Set(
+  catalog
+    .filter(it =>
+      it.category &&
+      it.category.toLowerCase() === currentCategoryFilter.toLowerCase() &&
+      (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
+    )
+    .map(it => it.folder)
+)];
+
 
   if (!currentIdolFilter) {
     renderIdolButtons(idolsWithCat);
@@ -862,20 +865,32 @@ function toggleCategoryFilter(cat, btn) {
 
 /* Combine idol + category filters */
 function applyFilters() {
-  const idolFilter = currentIdolFilter
-    ? currentIdolFilter.toLowerCase()
-    : searchInput.value.trim().toLowerCase();
+  const searchTerm = searchInput.value.trim().toLowerCase();
+  const idolFilter = currentIdolFilter ? currentIdolFilter.toLowerCase() : "";
+  const hasSearch = !!searchTerm;
   const hasIdol = !!idolFilter;
   const hasCat = !!currentCategoryFilter;
 
   filteredCatalog = catalog.filter(it => {
+    const matchSearch = !hasSearch || it.folder.toLowerCase().includes(searchTerm);
     const matchIdol = !hasIdol || it.folder.toLowerCase().includes(idolFilter);
-    const matchCat = !hasCat || (it.category && it.category.toLowerCase() === currentCategoryFilter.toLowerCase());
-    return matchIdol && matchCat;
+    const matchCat = !hasCat || (it.category && it.category.toLowerCase() === currentCategoryFilter?.toLowerCase());
+    return matchSearch && matchIdol && matchCat;
   });
 
   if (catalogOpen) renderCatalogThumbnails();
+
+  // 🩷 Update categories dynamically based on search term
+  if (hasSearch && !hasIdol && !hasCat) {
+    const searchCats = [...new Set(
+      catalog
+        .filter(it => it.folder.toLowerCase().includes(searchTerm) && it.category)
+        .map(it => it.category)
+    )];
+    renderCategoryButtons(searchCats);
+  }
 }
+
 
 
 
