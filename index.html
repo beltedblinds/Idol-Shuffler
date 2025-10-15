@@ -769,29 +769,20 @@ if (currentIdolFilter === folderName) {
 
   applyFilters(); // refresh thumbnails based on current filters
 
-  // ✅ Limit categories depending on whether a category is selected
-  let idolCats;
-  if (currentCategoryFilter) {
-    // Keep current category list visible (don’t shrink)
-    idolCats = [...new Set(
-      catalog
-        .filter(it =>
-          it.category &&
-          it.category.toLowerCase() === currentCategoryFilter.toLowerCase()
-        )
-        .map(it => it.category)
-    )];
-  } else {
-    // Normal case: only show categories for this idol
-    idolCats = [...new Set(
-      catalog
-        .filter(it => it.folder === folderName)
-        .map(it => it.category)
-    )];
-  }
-  
+  // ✅ Limit categories to only ones this idol has
+  const idolCats = [...new Set(
+    catalog
+      .filter(it =>
+        it.folder === folderName &&
+        (!currentCategoryFilter ||
+          it.category.toLowerCase() === currentCategoryFilter.toLowerCase())
+      )
+      .map(it => it.category)
+  )];
   renderCategoryButtons(idolCats.length ? idolCats : categories);
-  
+
+  // ✅ Keep idols list as-is (don’t reset to full)
+  // so all idols from the selected category remain visible.
 }
 
 
