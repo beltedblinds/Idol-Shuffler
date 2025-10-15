@@ -746,8 +746,12 @@ function toggleCatalogIdol(folderName, btn) {
           )
           .map(it => it.category)
       )];
-      renderCategoryButtons(catsToShow);
+    
+      // 🩷 Keep order consistent with master `categories` list
+      const orderedCats = categories.filter(cat => catsToShow.includes(cat));
+      renderCategoryButtons(orderedCats);
     }
+
 
     return;
   }
