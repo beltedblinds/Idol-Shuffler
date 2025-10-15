@@ -805,55 +805,33 @@ function renderCategoryButtons(list = categories) {
 }
 
 function toggleCategoryFilter(cat, btn) {
-  const searchTerm = searchInput.value.trim().toLowerCase();
-
   // 🩷 Handle deselect (unclick category)
   if (currentCategoryFilter === cat) {
     currentCategoryFilter = null;
     btn.classList.remove("active");
     applyFilters();
 
-    // ✅ If an idol is still selected, restore only its categories
+    // ✅ If an idol is still selected, restore its categories only
     if (currentIdolFilter) {
       const idolCats = [...new Set(
         catalog
-          .filter(it =>
-            it.folder === currentIdolFilter &&
-            (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
-          )
+          .filter(it => it.folder === currentIdolFilter && it.category)
           .map(it => it.category)
       )];
       renderCategoryButtons(idolCats);
 
-      // ✅ Keep the idol highlighted
+      // ✅ Re-highlight the selected idol
       [...idolButtonsEl.children].forEach(b => {
         if (b.textContent === currentIdolFilter) b.classList.add("active");
       });
     } else {
-      // ✅ No idol selected → restore categories & idols limited by search term
-      const searchCats = [...new Set(
-        catalog
-          .filter(it =>
-            (!searchTerm || it.folder.toLowerCase().includes(searchTerm)) &&
-            it.category
-          )
-          .map(it => it.category)
-      )];
-      renderCategoryButtons(searchCats);
-
-      const searchIdols = [...new Set(
-        catalog
-          .filter(it =>
-            !searchTerm || it.folder.toLowerCase().includes(searchTerm)
-          )
-          .map(it => it.folder)
-      )];
-      renderIdolButtons(searchIdols);
+      // ✅ No idol selected → show all categories and idols
+      renderCategoryButtons();
+      renderIdolButtons();
     }
 
     return;
   }
-
 
   // 🩷 Set new category filter
   currentCategoryFilter = cat;
