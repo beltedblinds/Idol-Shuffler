@@ -994,21 +994,6 @@ window.addEventListener("keydown", e => {
 loadSaved();
 loadCatalog();
 loadCategories();
-
-// 🩷 After catalog loads, render initial idol and category lists
-document.addEventListener("DOMContentLoaded", () => {
-  const checkReady = setInterval(() => {
-    if (catalog && catalog.length > 0) {
-      clearInterval(checkReady);
-      const allIdols = [...new Set(catalog.map(it => it.folder))];
-      renderIdolButtons(allIdols);
-
-      const allCategories = [...new Set(catalog.map(it => it.category))];
-      renderCategoryButtons(allCategories);
-    }
-  }, 300);
-});
-
   
 </script>
 </body>
