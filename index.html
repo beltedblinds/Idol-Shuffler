@@ -957,18 +957,12 @@ async function loadCatalog() {
     const combined = t1 + "\n" + t2;
     catalog = parseCatalogText(combined);
     showRandom();
-
-    // ✅ Initialize idol and category lists on first load
-    const allIdols = [...new Set(catalog.map(it => it.folder))];
-    renderIdolButtons(allIdols);
-
-    const allCategories = [...new Set(catalog.map(it => it.category))];
-    renderCategoryButtons(allCategories);
   } catch (e) {
     console.error("Error loading gallery:", e);
     labelEl.textContent = "Error loading gallery list.";
   }
 }
+
 
 
 
