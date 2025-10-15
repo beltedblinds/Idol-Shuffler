@@ -641,9 +641,8 @@ function showSuggestions(matches, term) {
 
 /* 📂 Catalog + Idol Buttons */
 function selectFolder(folder) {
-  const match = folder.trim().toLowerCase();
-  filteredCatalog = catalog.filter(it => it.folder.toLowerCase() === match);
-  if (!filteredCatalog.length) filteredCatalog = catalog.filter(it => it.folder.toLowerCase().includes(match));
+  searchTerm = folder.trim().toLowerCase();
+  filteredCatalog = catalog.filter(it => it.folder.toLowerCase().includes(searchTerm));
   suggestionsEl.hidden = true;
   searchInput.value = folder;
   seenImages.clear();
@@ -651,7 +650,9 @@ function selectFolder(folder) {
   applyFilters();
   if (catalogOpen) renderCatalogThumbnails();
   renderIdolButtons();
+  renderCategoryButtons(); // 🩷 now categories also update after search
 }
+
 
 function toggleCatalog() {
   catalogOpen = !catalogOpen;
@@ -684,6 +685,8 @@ function renderCatalogThumbnails() {
 }
 
 let currentIdolFilter = null; // tracks which idol is currently active in catalog
+
+let searchTerm = "";
 
 function renderIdolButtons(list = null) {
   idolButtonsEl.innerHTML = "";
@@ -860,22 +863,59 @@ function toggleCategoryFilter(cat, btn) {
   }
 }
 
-/* Combine idol + category filters */
+/* Unified search + idol + category filtering */
 function applyFilters() {
-  const idolFilter = currentIdolFilter
-    ? currentIdolFilter.toLowerCase()
-    : searchInput.value.trim().toLowerCase();
-  const hasIdol = !!idolFilter;
-  const hasCat = !!currentCategoryFilter;
+  let pool = [...catalog];
 
-  filteredCatalog = catalog.filter(it => {
-    const matchIdol = !hasIdol || it.folder.toLowerCase().includes(idolFilter);
-    const matchCat = !hasCat || (it.category && it.category.toLowerCase() === currentCategoryFilter.toLowerCase());
-    return matchIdol && matchCat;
-  });
+  // 🔍 Apply search term (from search bar)
+  const searchValue = searchInput.value.trim().toLowerCase();
+  if (searchValue) {
+    pool = pool.filter(it =>
+      it.folder.toLowerCase().includes(searchValue) ||
+      (it.category && it.category.toLowerCase().includes(searchValue))
+    );
+  }
 
+  // 💖 Apply idol filter
+  if (currentIdolFilter) {
+    pool = pool.filter(it => it.folder === currentIdolFilter);
+  }
+
+  // 💜 Apply category filter
+  if (currentCategoryFilter) {
+    pool = pool.filter(it =>
+      it.category &&
+      it.category.toLowerCase() === currentCategoryFilter.toLowerCase()
+    );
+  }
+
+  filteredCatalog = pool;
+
+  // 🖼️ Refresh catalog thumbnails if open
   if (catalogOpen) renderCatalogThumbnails();
+
+  // 🩷 Update idol buttons to show only idols currently visible
+  const idolNames = [...new Set(pool.map(it => it.folder))];
+  renderIdolButtons(idolNames);
+
+  // 🩵 Update category buttons to show only categories currently visible
+  const catNames = [...new Set(pool.map(it => it.category).filter(Boolean))];
+  renderCategoryButtons(catNames);
+
+  // 🩷 Keep highlight state consistent
+  if (currentIdolFilter) {
+    [...idolButtonsEl.children].forEach(b => {
+      if (b.textContent === currentIdolFilter) b.classList.add("active");
+    });
+  }
+
+  if (currentCategoryFilter) {
+    [...categoryPanel.children].forEach(b => {
+      if (b.textContent === currentCategoryFilter) b.classList.add("active");
+    });
+  }
 }
+
 
 
 
