@@ -717,73 +717,64 @@ function renderIdolButtons(list = null) {
 }
 
 function toggleCatalogIdol(folderName, btn) {
-  // 🩷 Handle deselect
-  // 🩷 Handle deselect
-if (currentIdolFilter === folderName) {
-  currentIdolFilter = null;
-  btn.classList.remove("active");
-  applyFilters();
-
   const searchTerm = searchInput.value.trim().toLowerCase();
 
-  // ✅ Restore idols depending on current category & search
-  let idolsToShow;
-  if (currentCategoryFilter) {
-    idolsToShow = [...new Set(
+  // 🩷 Deselect idol
+  if (currentIdolFilter === folderName) {
+    currentIdolFilter = null;
+    btn.classList.remove("active");
+    applyFilters();
+
+    // ✅ Restore idols based on current category & search
+    const idolsToShow = [...new Set(
       catalog
         .filter(it =>
-          it.category &&
-          it.category.toLowerCase() === currentCategoryFilter.toLowerCase() &&
+          (!currentCategoryFilter || it.category.toLowerCase() === currentCategoryFilter.toLowerCase()) &&
           (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
         )
         .map(it => it.folder)
     )];
-  } else {
-    idolsToShow = [...new Set(
-      catalog
-        .filter(it => !searchTerm || it.folder.toLowerCase().includes(searchTerm))
-        .map(it => it.folder)
-    )];
+    renderIdolButtons(idolsToShow);
+
+    // ✅ If a category is already selected, keep the current category list as-is
+    // Otherwise, restore categories for visible idols
+    if (!currentCategoryFilter) {
+      const catsToShow = [...new Set(
+        catalog
+          .filter(it =>
+            (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
+          )
+          .map(it => it.category)
+      )];
+      renderCategoryButtons(catsToShow);
+    }
+
+    return;
   }
-  renderIdolButtons(idolsToShow);
 
-  // ✅ Restore categories (respecting search)
-  const catsToShow = [...new Set(
-    catalog
-      .filter(it =>
-        (!searchTerm || it.folder.toLowerCase().includes(searchTerm)) &&
-        (!currentCategoryFilter || it.category.toLowerCase() === currentCategoryFilter.toLowerCase())
-      )
-      .map(it => it.category)
-  )];
-  renderCategoryButtons(catsToShow);
-
-  return;
-}
-
-
-  // 🩷 Set new idol filter
+  // 🩷 Select new idol
   currentIdolFilter = folderName;
   [...idolButtonsEl.children].forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
 
-  applyFilters(); // refresh thumbnails based on current filters
+  applyFilters();
 
-  // ✅ Limit categories to only ones this idol has
-  const idolCats = [...new Set(
-    catalog
-      .filter(it =>
-        it.folder === folderName &&
-        (!currentCategoryFilter ||
-          it.category.toLowerCase() === currentCategoryFilter.toLowerCase())
-      )
-      .map(it => it.category)
-  )];
-  renderCategoryButtons(idolCats.length ? idolCats : categories);
+  // ✅ If no category is currently selected, limit the list to only this idol’s categories
+  if (!currentCategoryFilter) {
+    const idolCats = [...new Set(
+      catalog
+        .filter(it =>
+          it.folder === folderName &&
+          (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
+        )
+        .map(it => it.category)
+    )];
+    renderCategoryButtons(idolCats);
+  }
 
-  // ✅ Keep idols list as-is (don’t reset to full)
-  // so all idols from the selected category remain visible.
+  // ✅ If a category *is* selected, keep category list stable (don’t reset)
 }
+
 
 
 
