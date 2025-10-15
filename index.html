@@ -811,7 +811,7 @@ function toggleCategoryFilter(cat, btn) {
     btn.classList.remove("active");
     applyFilters();
 
-    // ✅ If an idol is still selected, show only that idol’s categories
+    // ✅ If an idol is still selected, restore its categories only
     if (currentIdolFilter) {
       const idolCats = [...new Set(
         catalog
@@ -819,13 +819,17 @@ function toggleCategoryFilter(cat, btn) {
           .map(it => it.category)
       )];
       renderCategoryButtons(idolCats);
+
+      // ✅ Re-highlight the selected idol
+      [...idolButtonsEl.children].forEach(b => {
+        if (b.textContent === currentIdolFilter) b.classList.add("active");
+      });
     } else {
-      // ✅ Otherwise, restore all categories
+      // ✅ No idol selected → show all categories and idols
       renderCategoryButtons();
+      renderIdolButtons();
     }
 
-    // ✅ Always restore full idol list (don’t hide others)
-    renderIdolButtons();
     return;
   }
 
@@ -845,11 +849,16 @@ function toggleCategoryFilter(cat, btn) {
       )
       .map(it => it.folder)
   )];
-  if (!currentIdolFilter) renderIdolButtons(idolsWithCat);
+
+  if (!currentIdolFilter) {
+    renderIdolButtons(idolsWithCat);
+  } else {
+    // ✅ Keep idol list as-is and ensure idol stays highlighted
+    [...idolButtonsEl.children].forEach(b => {
+      if (b.textContent === currentIdolFilter) b.classList.add("active");
+    });
+  }
 }
-
-
-
 
 /* Combine idol + category filters */
 function applyFilters() {
