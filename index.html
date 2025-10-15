@@ -700,30 +700,49 @@ function renderIdolButtons(list = null) {
 
 function toggleCatalogIdol(folderName, btn) {
   // 🩷 Handle deselect
-  if (currentIdolFilter === folderName) {
-    currentIdolFilter = null;
-    btn.classList.remove("active");
-    applyFilters();
+  // 🩷 Handle deselect
+if (currentIdolFilter === folderName) {
+  currentIdolFilter = null;
+  btn.classList.remove("active");
+  applyFilters();
 
-    // ✅ Restore idol list depending on category filter
-    if (currentCategoryFilter) {
-      const idolsWithCat = [...new Set(
-        catalog
-          .filter(it =>
-            it.category &&
-            it.category.toLowerCase() === currentCategoryFilter.toLowerCase()
-          )
-          .map(it => it.folder)
-      )];
-      renderIdolButtons(idolsWithCat);
-    } else {
-      renderIdolButtons();
-    }
+  const searchTerm = searchInput.value.trim().toLowerCase();
 
-    // ✅ Restore categories depending on idol filter state
-    renderCategoryButtons();
-    return;
+  // ✅ Restore idols depending on current category & search
+  let idolsToShow;
+  if (currentCategoryFilter) {
+    idolsToShow = [...new Set(
+      catalog
+        .filter(it =>
+          it.category &&
+          it.category.toLowerCase() === currentCategoryFilter.toLowerCase() &&
+          (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
+        )
+        .map(it => it.folder)
+    )];
+  } else {
+    idolsToShow = [...new Set(
+      catalog
+        .filter(it => !searchTerm || it.folder.toLowerCase().includes(searchTerm))
+        .map(it => it.folder)
+    )];
   }
+  renderIdolButtons(idolsToShow);
+
+  // ✅ Restore categories (respecting search)
+  const catsToShow = [...new Set(
+    catalog
+      .filter(it =>
+        (!searchTerm || it.folder.toLowerCase().includes(searchTerm)) &&
+        (!currentCategoryFilter || it.category.toLowerCase() === currentCategoryFilter.toLowerCase())
+      )
+      .map(it => it.category)
+  )];
+  renderCategoryButtons(catsToShow);
+
+  return;
+}
+
 
   // 🩷 Set new idol filter
   currentIdolFilter = folderName;
@@ -806,32 +825,48 @@ function renderCategoryButtons(list = categories) {
 
 function toggleCategoryFilter(cat, btn) {
   // 🩷 Handle deselect (unclick category)
-  if (currentCategoryFilter === cat) {
-    currentCategoryFilter = null;
-    btn.classList.remove("active");
-    applyFilters();
+if (currentCategoryFilter === cat) {
+  currentCategoryFilter = null;
+  btn.classList.remove("active");
+  applyFilters();
 
-    // ✅ If an idol is still selected, restore its categories only
-    if (currentIdolFilter) {
-      const idolCats = [...new Set(
-        catalog
-          .filter(it => it.folder === currentIdolFilter && it.category)
-          .map(it => it.category)
-      )];
-      renderCategoryButtons(idolCats);
+  const searchTerm = searchInput.value.trim().toLowerCase();
 
-      // ✅ Re-highlight the selected idol
-      [...idolButtonsEl.children].forEach(b => {
-        if (b.textContent === currentIdolFilter) b.classList.add("active");
-      });
-    } else {
-      // ✅ No idol selected → show all categories and idols
-      renderCategoryButtons();
-      renderIdolButtons();
-    }
+  // ✅ If an idol is still selected, restore its categories (respecting search)
+  if (currentIdolFilter) {
+    const idolCats = [...new Set(
+      catalog
+        .filter(it =>
+          it.folder === currentIdolFilter &&
+          it.category &&
+          (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
+        )
+        .map(it => it.category)
+    )];
+    renderCategoryButtons(idolCats);
 
-    return;
+    // ✅ Re-highlight idol
+    [...idolButtonsEl.children].forEach(b => {
+      if (b.textContent === currentIdolFilter) b.classList.add("active");
+    });
+  } else {
+    // ✅ No idol selected → restore based on search term only
+    const visibleIdols = [...new Set(
+      catalog
+        .filter(it => !searchTerm || it.folder.toLowerCase().includes(searchTerm))
+        .map(it => it.folder)
+    )];
+    const visibleCats = [...new Set(
+      catalog
+        .filter(it => !searchTerm || it.folder.toLowerCase().includes(searchTerm))
+        .map(it => it.category)
+    )];
+    renderCategoryButtons(visibleCats);
+    renderIdolButtons(visibleIdols);
   }
+
+  return;
+}
 
   // 🩷 Set new category filter
   currentCategoryFilter = cat;
