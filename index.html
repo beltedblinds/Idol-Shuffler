@@ -871,6 +871,7 @@ function applyFilters() {
   const hasIdol = !!idolFilter;
   const hasCat = !!currentCategoryFilter;
 
+  // 🩷 Apply all filters together
   filteredCatalog = catalog.filter(it => {
     const matchSearch = !hasSearch || it.folder.toLowerCase().includes(searchTerm);
     const matchIdol = !hasIdol || it.folder.toLowerCase().includes(idolFilter);
@@ -880,16 +881,32 @@ function applyFilters() {
 
   if (catalogOpen) renderCatalogThumbnails();
 
-  // 🩷 Update categories dynamically based on search term
-  if (hasSearch && !hasIdol && !hasCat) {
-    const searchCats = [...new Set(
-      catalog
-        .filter(it => it.folder.toLowerCase().includes(searchTerm) && it.category)
-        .map(it => it.category)
-    )];
-    renderCategoryButtons(searchCats);
+  // 🩷 Update visible idol & category lists dynamically
+  const visibleIdols = [...new Set(filteredCatalog.map(it => it.folder))];
+  const visibleCats = [...new Set(filteredCatalog.map(it => it.category).filter(Boolean))];
+
+  // Only re-render idols/categories when both panels are open
+  if (idolButtonsEl.classList.contains("open")) {
+    renderIdolButtons(visibleIdols);
+    // keep current idol highlighted
+    if (currentIdolFilter) {
+      [...idolButtonsEl.children].forEach(b => {
+        if (b.textContent === currentIdolFilter) b.classList.add("active");
+      });
+    }
+  }
+
+  if (categoryPanel.classList.contains("open")) {
+    renderCategoryButtons(visibleCats);
+    // keep current category highlighted
+    if (currentCategoryFilter) {
+      [...categoryPanel.children].forEach(b => {
+        if (b.textContent === currentCategoryFilter) b.classList.add("active");
+      });
+    }
   }
 }
+
 
 
 
