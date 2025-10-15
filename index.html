@@ -824,9 +824,39 @@ function toggleCategories() {
   // 🧠 Auto-align Category panel beside idol buttons if open
   if (categoryOpen) {
     categoryPanel.style.left = idolButtonsEl.classList.contains("open") ? "200px" : "0";
-    renderCategoryButtons();
+
+    // 🩷 Reflect current search + idol filter in category panel
+    const searchTerm = searchInput.value.trim().toLowerCase();
+
+    let visibleCategories;
+    if (currentIdolFilter) {
+      // Show only categories of the current idol (respecting search)
+      visibleCategories = [...new Set(
+        catalog
+          .filter(it =>
+            it.folder.toLowerCase() === currentIdolFilter.toLowerCase() &&
+            (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
+          )
+          .map(it => it.category)
+      )];
+    } else if (searchTerm) {
+      // Show categories matching search term only
+      visibleCategories = [...new Set(
+        catalog
+          .filter(it =>
+            it.folder.toLowerCase().includes(searchTerm)
+          )
+          .map(it => it.category)
+      )];
+    } else {
+      // Default: show all categories
+      visibleCategories = categories;
+    }
+
+    renderCategoryButtons(visibleCategories);
   }
 }
+
 
 function renderCategoryButtons(list = categories) {
   categoryPanel.innerHTML = "";
