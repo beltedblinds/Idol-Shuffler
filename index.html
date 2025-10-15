@@ -617,10 +617,28 @@ function renderSaved() {
 
 function handleSearch(input) {
   const term = input.trim().toLowerCase();
-  if (!term) { filteredCatalog = []; showRandom(); suggestionsEl.hidden = true; return; }
-  const matches = [...new Set(catalog.map(it => it.folder))].filter(f => f.toLowerCase().includes(term));
+
+  if (!term) {
+    filteredCatalog = [];
+    showRandom();
+    suggestionsEl.hidden = true;
+
+    // ✅ Reset idol buttons & categories when search is cleared
+    const allIdols = [...new Set(catalog.map(it => it.folder))];
+    renderIdolButtons(allIdols);
+
+    const allCategories = [...new Set(catalog.map(it => it.category))];
+    renderCategoryButtons(allCategories);
+
+    return;
+  }
+
+  const matches = [...new Set(catalog.map(it => it.folder))].filter(f =>
+    f.toLowerCase().includes(term)
+  );
   showSuggestions(matches, term);
 }
+
 
 function showSuggestions(matches, term) {
   suggestionsEl.innerHTML = "";
