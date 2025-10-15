@@ -761,16 +761,20 @@ function toggleCatalogIdol(folderName, btn) {
 
   // ✅ If no category is currently selected, limit the list to only this idol’s categories
   if (!currentCategoryFilter) {
-    const idolCats = [...new Set(
-      catalog
-        .filter(it =>
-          it.folder === folderName &&
-          (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
-        )
-        .map(it => it.category)
-    )];
-    renderCategoryButtons(idolCats);
-  }
+  const idolCats = [...new Set(
+    catalog
+      .filter(it =>
+        it.folder === folderName &&
+        (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
+      )
+      .map(it => it.category)
+  )];
+
+  // 🩷 Keep original order from `categories` file
+  const orderedIdolCats = categories.filter(cat => idolCats.includes(cat));
+  renderCategoryButtons(orderedIdolCats);
+}
+
 
   // ✅ If a category *is* selected, keep category list stable (don’t reset)
 }
