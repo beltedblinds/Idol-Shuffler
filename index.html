@@ -809,7 +809,7 @@ const categoryToggle = document.getElementById("categoryToggle");
 
 async function loadCategories() {
   try {
-    const res = await fetch(CAT_URL);
+    const res = await fetch(CAT_URL, { cache: "no-store" });
     const text = await res.text();
     categories = text.split("\n").map(l => l.trim()).filter(Boolean);
   } catch (e) {
@@ -979,22 +979,19 @@ function applyFilters() {
 async function loadCatalog() {
   try {
     const [r1, r2] = await Promise.all([
-      fetch(MEDIA_URL),
-      fetch(VIDEO_URL)
+      fetch(MEDIA_URL, { cache: "no-store" }),
+      fetch(VIDEO_URL, { cache: "no-store" })
     ]);
     const [t1, t2] = await Promise.all([r1.text(), r2.text()]);
     const combined = t1 + "\n" + t2;
     catalog = parseCatalogText(combined);
 
-    // <-- ADDED: initialize filteredCatalog and UI lists so idol buttons
-    // and category buttons show immediately once catalog loads.
     filteredCatalog = catalog.slice(); // show everything by default
     const allIdols = [...new Set(catalog.map(it => it.folder))];
     renderIdolButtons(allIdols);
 
     const allCategories = [...new Set(catalog.map(it => it.category))];
     renderCategoryButtons(allCategories);
-    // END ADDED -->
 
     showRandom();
   } catch (e) {
