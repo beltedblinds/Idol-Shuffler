@@ -485,8 +485,8 @@ function displayUrl(url, folder, pushHist = true) {
   if (!url) return;
 
   const wrapper = document.querySelector(".image-wrapper");
-  wrapper.innerHTML = ''; // clear old media
-  wrapper.appendChild(saveBtn); // keep save button on top
+  wrapper.innerHTML = '';
+  wrapper.appendChild(saveBtn);
 
   let media;
   if (url.match(/\.(mp4|webm|mov)$/i)) {
@@ -496,25 +496,33 @@ function displayUrl(url, folder, pushHist = true) {
     media.loop = true;
     media.muted = true;
     media.playsInline = true;
-    media.style.maxWidth = "100%";
-    media.style.maxHeight = "78vh";
-    media.style.borderRadius = "16px";
   } else {
     media = document.createElement("img");
     media.src = url;
-    media.style.maxWidth = "100%";
-    media.style.maxHeight = "78vh";
-    media.style.borderRadius = "16px";
     media.style.transition = "opacity 0.3s ease-in-out";
   }
 
+  media.style.borderRadius = "16px";
+  media.style.maxWidth = "100%";
+
   wrapper.appendChild(media);
+
+  // --- DYNAMIC HEIGHT CALCULATION ---
+  function resizeMedia() {
+    const controlsHeight = document.querySelector(".controls").offsetHeight || 0;
+    const labelHeight = labelEl.offsetHeight || 0;
+    const savedHeight = savedListEl.offsetHeight || 0;
+    const padding = 40; // extra margin
+    const availableHeight = window.innerHeight - controlsHeight - labelHeight - savedHeight - padding;
+    media.style.maxHeight = availableHeight + "px";
+  }
+
+  resizeMedia(); // initial size
+  window.addEventListener("resize", resizeMedia); // responsive on resize
+
   labelEl.textContent = folder || "";
 
-  // 🩷 Track the current media
   currentMediaUrl = url;
-
-  // Update save button state
   saveBtn.classList.toggle("saved", !!saved.find(s => s.url === currentMediaUrl));
 
   if (pushHist && (!history.length || history[history.length - 1] !== url)) {
@@ -522,6 +530,7 @@ function displayUrl(url, folder, pushHist = true) {
     historyPos = history.length - 1;
   }
 }
+
 
 
 function getCurrentPool() {
