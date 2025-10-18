@@ -809,13 +809,15 @@ const categoryToggle = document.getElementById("categoryToggle");
 
 async function loadCategories() {
   try {
-    const res = await fetch(CAT_URL);
+    const timestamp = Date.now(); // cache-buster
+    const res = await fetch(CAT_URL + "?t=" + timestamp);
     const text = await res.text();
     categories = text.split("\n").map(l => l.trim()).filter(Boolean);
   } catch (e) {
     console.error("Failed to load categories", e);
   }
 }
+
 
 function toggleCategories() {
   categoryOpen = !categoryOpen;
@@ -978,23 +980,23 @@ function applyFilters() {
 
 async function loadCatalog() {
   try {
+    const timestamp = Date.now(); // cache-buster
+
     const [r1, r2] = await Promise.all([
-      fetch(MEDIA_URL),
-      fetch(VIDEO_URL)
+      fetch(MEDIA_URL + "?t=" + timestamp),
+      fetch(VIDEO_URL + "?t=" + timestamp)
     ]);
     const [t1, t2] = await Promise.all([r1.text(), r2.text()]);
     const combined = t1 + "\n" + t2;
+
     catalog = parseCatalogText(combined);
 
-    // <-- ADDED: initialize filteredCatalog and UI lists so idol buttons
-    // and category buttons show immediately once catalog loads.
     filteredCatalog = catalog.slice(); // show everything by default
     const allIdols = [...new Set(catalog.map(it => it.folder))];
     renderIdolButtons(allIdols);
 
     const allCategories = [...new Set(catalog.map(it => it.category))];
     renderCategoryButtons(allCategories);
-    // END ADDED -->
 
     showRandom();
   } catch (e) {
@@ -1002,6 +1004,7 @@ async function loadCatalog() {
     labelEl.textContent = "Error loading gallery list.";
   }
 }
+
 
 
 
