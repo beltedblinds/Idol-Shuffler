@@ -980,7 +980,7 @@ function applyFilters() {
 
 async function loadCatalog() {
   try {
-    const [r1, r2] = await Promise.all([
+    const [r1, r2, r3] = await Promise.all([
       fetch(MEDIA_URL),
       fetch(VIDEO_URL),
       fetch(MEDIA_URL_02)
@@ -989,15 +989,11 @@ async function loadCatalog() {
     const combined = t1 + "\n" + t2 + "\n" + t3;
     catalog = parseCatalogText(combined);
 
-    // <-- ADDED: initialize filteredCatalog and UI lists so idol buttons
-    // and category buttons show immediately once catalog loads.
-    filteredCatalog = catalog.slice(); // show everything by default
+    filteredCatalog = catalog.slice();
     const allIdols = [...new Set(catalog.map(it => it.folder))];
     renderIdolButtons(allIdols);
-
     const allCategories = [...new Set(catalog.map(it => it.category))];
     renderCategoryButtons(allCategories);
-    // END ADDED -->
 
     showRandom();
   } catch (e) {
