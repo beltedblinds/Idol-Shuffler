@@ -833,23 +833,23 @@ function toggleCategories() {
     let visibleCategories;
     if (currentIdolFilter) {
       // Show only categories of the current idol (respecting search)
-      visibleCategories = [...new Set(
-        catalog
-          .filter(it =>
-            it.folder.toLowerCase() === currentIdolFilter.toLowerCase() &&
-            (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
-          )
-          .map(it => it.category)
-      )];
+      visibleCategories = categories.filter(cat =>
+        catalog.some(it =>
+          it.category === cat &&
+          it.folder.toLowerCase() === currentIdolFilter.toLowerCase() &&
+          (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
+        )
+      );
+
     } else if (searchTerm) {
       // Show categories matching search term only
-      visibleCategories = [...new Set(
-        catalog
-          .filter(it =>
-            it.folder.toLowerCase().includes(searchTerm)
-          )
-          .map(it => it.category)
-      )];
+      visibleCategories = categories.filter(cat =>
+        catalog.some(it =>
+          it.category === cat &&
+          it.folder.toLowerCase().includes(searchTerm)
+        )
+      );
+
     } else {
       // Default: show all categories
       visibleCategories = categories;
