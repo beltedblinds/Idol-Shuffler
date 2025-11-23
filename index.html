@@ -967,15 +967,14 @@ function applyFilters() {
 
   // 🩷 Update categories dynamically based on search term
   if (hasSearch && !hasIdol && !hasCat) {
-    const searchCats = categories.filter(cat =>
-      catalog.some(it =>
-        it.category === cat &&
-        it.folder.toLowerCase().includes(searchTerm)
-      )
-    );
+    const searchCats = [...new Set(
+      catalog
+        .filter(it => it.folder.toLowerCase().includes(searchTerm) && it.category)
+        .map(it => it.category)
+    )];
     renderCategoryButtons(searchCats);
   }
-
+}
 
 
 
