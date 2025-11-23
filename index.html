@@ -883,16 +883,16 @@ if (currentCategoryFilter === cat) {
 
   // ✅ If an idol is still selected, restore its categories (respecting search)
   if (currentIdolFilter) {
-    const idolCats = [...new Set(
-      catalog
-        .filter(it =>
-          it.folder === currentIdolFilter &&
-          it.category &&
-          (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
-        )
-        .map(it => it.category)
-    )];
+    const idolCats = categories.filter(cat =>
+      catalog.some(it =>
+        it.category === cat &&
+        it.folder === currentIdolFilter &&
+        (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
+      )
+    );
     renderCategoryButtons(idolCats);
+  }
+
 
     // ✅ Re-highlight idol
     [...idolButtonsEl.children].forEach(b => {
