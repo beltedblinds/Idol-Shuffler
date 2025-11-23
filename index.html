@@ -621,7 +621,7 @@ function handleSearch(input) {
   const term = input.trim().toLowerCase();
 
   if (!term) {
-    filteredCatalog = [];
+    filteredCatalog = catalog.slice();
     showRandom();
     suggestionsEl.hidden = true;
 
