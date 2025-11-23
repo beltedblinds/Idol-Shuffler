@@ -905,11 +905,13 @@ if (currentCategoryFilter === cat) {
         .filter(it => !searchTerm || it.folder.toLowerCase().includes(searchTerm))
         .map(it => it.folder)
     )];
-    const visibleCats = [...new Set(
-      catalog
-        .filter(it => !searchTerm || it.folder.toLowerCase().includes(searchTerm))
-        .map(it => it.category)
-    )];
+    const visibleCats = categories.filter(cat =>
+      catalog.some(it =>
+        it.category === cat &&
+        (!searchTerm || it.folder.toLowerCase().includes(searchTerm)) &&
+        (!currentIdolFilter || it.folder === currentIdolFilter)
+      )
+    );
     renderCategoryButtons(visibleCats);
     renderIdolButtons(visibleIdols);
   }
