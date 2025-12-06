@@ -584,12 +584,16 @@ function displayUrl(url, folder, pushHist = true) {
 
   wrapper.appendChild(media);
 
-  // Show progress bar only for videos
-  if (currentVideoEl) {
+  // Show progress bar only for <video> elements
+  if (media.tagName.toLowerCase() === "video") {
+    currentVideoEl = media; // track only actual video
     videoProgressContainer.style.display = "block";
+    updateSoundIcon?.(); // keep sound icon updated
   } else {
+    currentVideoEl = null; // clear reference if not video
     videoProgressContainer.style.display = "none";
   }
+
   
   labelEl.textContent = folder || "";
 
