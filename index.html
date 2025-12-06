@@ -809,8 +809,9 @@ function toggleCatalogIdol(folderName, btn) {
           .filter(it =>
             (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
           )
-          .map(it => it.category)
+          .flatMap(it => it.categories)
       )];
+
     
       // 🩷 Keep order consistent with master `categories` list
       const orderedCats = categories.filter(cat => catsToShow.includes(cat));
