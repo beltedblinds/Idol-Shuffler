@@ -509,10 +509,15 @@ function parseCatalogText(text) {
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
   return lines.map(line => {
     const parts = line.split(",").map(p => p.trim());
-    return { folder: parts[0], raw: parts[1], thumb: parts[2], category: parts[3] || ""};
+    const cat = parts[3] || "";
+    const hasSound = cat.toLowerCase().includes("sound");
+    const categories = cat ? [cat] : [];
+    if (hasSound) categories.push("Sound"); // ✅ add "Sound" category
+    return { folder: parts[0], raw: parts[1], thumb: parts[2], category: cat, extraCategories: categories };
   }).filter(e => e.folder && e.raw && e.thumb)
     .sort((a,b)=>a.folder.localeCompare(b.folder));
 }
+
 
 function displayUrl(url, folder, pushHist = true) {
   if (!url) return;
@@ -1016,7 +1021,7 @@ function applyFilters() {
   filteredCatalog = catalog.filter(it => {
     const matchSearch = !hasSearch || it.folder.toLowerCase().includes(searchTerm);
     const matchIdol = !hasIdol || it.folder.toLowerCase().includes(idolFilter);
-    const matchCat = !hasCat || (it.category && it.category.toLowerCase() === currentCategoryFilter?.toLowerCase());
+    const matchCat = !hasCat || (it.extraCategories && it.extraCategories.some(c => c.toLowerCase() === currentCategoryFilter?.toLowerCase()));
     return matchSearch && matchIdol && matchCat;
   });
 
@@ -1051,7 +1056,10 @@ async function loadCatalog() {
     filteredCatalog = catalog.slice();
     const allIdols = [...new Set(catalog.map(it => it.folder))];
     renderIdolButtons(allIdols);
-    const allCategories = [...new Set(catalog.map(it => it.category))];
+    
+    // ✅ Include all extraCategories, push "Sound" last
+    const allCategories = [...new Set(catalog.flatMap(it => it.extraCategories))];
+    if (!allCategories.includes("Sound")) allCategories.push("Sound"); 
     renderCategoryButtons(allCategories);
 
     showRandom();
