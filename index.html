@@ -181,6 +181,31 @@
     color: var(--accent);
   }
 
+  #soundBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px; /* ✅ top-right of video */
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.2s ease;
+}
+
+#soundBtn:hover {
+  background: rgba(255, 123, 203, 0.25);
+  color: var(--accent);
+}
+
+
   #label {
     margin-top: 12px;
     font-size: 15px;
@@ -426,8 +451,10 @@
 
 <div class="image-wrapper">
   <button id="saveBtn" title="Save / Unsave">💾</button>
+  <button id="soundBtn" title="Toggle Sound">🔇</button>
   <img id="idolImage" src="" alt="Idol" />
 </div>
+
 
 <div id="label"></div>
 <div id="savedList"></div>
@@ -453,6 +480,9 @@ let catalogOpen = false;
 const CYCLE_MS = 7000;
 let seenImages = new Set();
 let currentMediaUrl = ""; // 🩷 track current image/video URL
+let soundEnabled = false; // ✅ sound OFF by default
+let currentVideoEl = null; // ✅ tracks active video element
+
 
 /* DOM */
 const imgEl = document.getElementById("idolImage");
@@ -471,6 +501,8 @@ const suggestionsEl = document.getElementById("suggestions");
 const catalogPanel = document.getElementById("catalogPanel");
 const catalogToggle = document.getElementById("catalogToggle");
 const idolButtonsEl = document.getElementById("idolButtons");
+const soundBtn = document.getElementById("soundBtn");
+
 
 /* Parser and functions (same as before) */
 function parseCatalogText(text) {
@@ -488,6 +520,8 @@ function displayUrl(url, folder, pushHist = true) {
   const wrapper = document.querySelector(".image-wrapper");
   wrapper.innerHTML = ''; // clear old media
   wrapper.appendChild(saveBtn); // keep save button on top
+  wrapper.appendChild(document.getElementById("soundBtn")); // ✅ keep sound button on top
+
 
   let media;
   if (url.match(/\.(mp4|webm|mov)$/i)) {
@@ -495,12 +529,15 @@ function displayUrl(url, folder, pushHist = true) {
     media.src = url;
     media.autoplay = true;
     media.loop = true;
-    media.muted = true;
+    media.muted = !soundEnabled; // ✅ respect sound toggle
     media.playsInline = true;
     media.style.maxWidth = "100%";
     media.style.maxHeight = "78vh";
     media.style.borderRadius = "16px";
-  } else {
+  
+    currentVideoEl = media; // ✅ track current video
+    updateSoundIcon(); // ✅ update button icon
+  }  else {
     media = document.createElement("img");
     media.src = url;
     media.style.maxWidth = "100%";
@@ -594,6 +631,21 @@ function saveCurrent() {
   renderSaved();
   saveBtn.classList.toggle("saved", idx === -1);
 }
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+
+  if (currentVideoEl) {
+    currentVideoEl.muted = !soundEnabled;
+  }
+
+  updateSoundIcon();
+}
+
+function updateSoundIcon() {
+  soundBtn.textContent = soundEnabled ? "🔊" : "🔇";
+}
+
 
   
 function loadSaved() { try { saved = JSON.parse(localStorage.getItem("idol_saved")) || []; } catch { saved = []; } renderSaved(); }
@@ -1016,6 +1068,7 @@ prevBtn.onclick = showPrevious;
 cycleToggle.onclick = toggleCycle;
 savedModeToggle.onclick = toggleSavedMode;
 saveBtn.onclick = saveCurrent;
+soundBtn.onclick = toggleSound;
 searchBtn.onclick = () => selectFolder(searchInput.value);
 catalogToggle.onclick = toggleCatalog;
 categoryToggle.onclick = toggleCategories;
