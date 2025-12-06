@@ -78,6 +78,26 @@
     color: var(--accent-hover);
   }
 
+  #videoProgressContainer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 123, 203, 0.2); /* light pink */
+  cursor: pointer;
+  border-radius: 3px;
+  z-index: 3;
+  }
+  
+  #videoProgress {
+    width: 0%;
+    height: 100%;
+    background: #ff7bcb; /* solid pink */
+    border-radius: 3px;
+  }
+
+
   #suggestions {
     position: absolute;
     top: 44px;
@@ -453,6 +473,10 @@
   <button id="saveBtn" title="Save / Unsave">💾</button>
   <button id="soundBtn" title="Toggle Sound">🔇</button>
   <img id="idolImage" src="" alt="Idol" />
+  <div id="videoProgressContainer">
+    <div id="videoProgress"></div>
+  </div>
+
 </div>
 
 
@@ -502,6 +526,8 @@ const catalogPanel = document.getElementById("catalogPanel");
 const catalogToggle = document.getElementById("catalogToggle");
 const idolButtonsEl = document.getElementById("idolButtons");
 const soundBtn = document.getElementById("soundBtn");
+const videoProgressContainer = document.getElementById("videoProgressContainer");
+const videoProgress = document.getElementById("videoProgress");
 
 
 /* Parser and functions (same as before) */
@@ -557,6 +583,14 @@ function displayUrl(url, folder, pushHist = true) {
   }
 
   wrapper.appendChild(media);
+
+  // Show progress bar only for videos
+  if (currentVideoEl) {
+    videoProgressContainer.style.display = "block";
+  } else {
+    videoProgressContainer.style.display = "none";
+  }
+  
   labelEl.textContent = folder || "";
 
   // 🩷 Track the current media
@@ -1099,6 +1133,27 @@ window.addEventListener("keydown", e => {
     case "ArrowUp": e.preventDefault(); toggleSavedMode(); break;
   }
 });
+
+function updateProgress() {
+  if (currentVideoEl && !currentVideoEl.paused) {
+    const percent = (currentVideoEl.currentTime / currentVideoEl.duration) * 100;
+    videoProgress.style.width = percent + "%";
+  }
+  requestAnimationFrame(updateProgress);
+}
+
+// Click-to-seek functionality
+videoProgressContainer.addEventListener("click", e => {
+  if (!currentVideoEl) return;
+  const rect = videoProgressContainer.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const width = rect.width;
+  const newTime = (clickX / width) * currentVideoEl.duration;
+  currentVideoEl.currentTime = newTime;
+});
+
+requestAnimationFrame(updateProgress);
+
 
 loadSaved();
 loadCatalog();
