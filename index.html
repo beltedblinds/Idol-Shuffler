@@ -794,11 +794,12 @@ function toggleCatalogIdol(folderName, btn) {
     const idolsToShow = [...new Set(
       catalog
         .filter(it =>
-          (!currentCategoryFilter || it.category.toLowerCase() === currentCategoryFilter.toLowerCase()) &&
+          (!currentCategoryFilter || it.categories.some(c => c.toLowerCase() === currentCategoryFilter.toLowerCase())) &&
           (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
         )
         .map(it => it.folder)
     )];
+
     renderIdolButtons(idolsToShow);
 
     // ✅ If a category is already selected, keep the current category list as-is
