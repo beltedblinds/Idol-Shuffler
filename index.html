@@ -509,10 +509,16 @@ function parseCatalogText(text) {
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
   return lines.map(line => {
     const parts = line.split(",").map(p => p.trim());
-    return { folder: parts[0], raw: parts[1], thumb: parts[2], category: parts[3] || ""};
-  }).filter(e => e.folder && e.raw && e.thumb)
-    .sort((a,b)=>a.folder.localeCompare(b.folder));
+    if (parts.length < 3) return null; // must have folder, raw, thumb
+    const folder = parts[0];
+    const raw = parts[1];
+    const thumb = parts[2];
+    const categories = parts.slice(3).map(c => c.trim()).filter(Boolean); // ✅ multiple categories
+    return { folder, raw, thumb, categories };
+  }).filter(e => e && e.folder && e.raw && e.thumb)
+    .sort((a,b) => a.folder.localeCompare(b.folder));
 }
+
 
 function displayUrl(url, folder, pushHist = true) {
   if (!url) return;
@@ -685,7 +691,7 @@ function handleSearch(input) {
     renderIdolButtons(allIdols);
 
     const allCategories = categories.filter(cat =>
-      catalog.some(it => it.category === cat)
+      catalog.some(it => it.categories && it.categories.some(c => c === cat))
     );
     renderCategoryButtons(allCategories);
 
@@ -892,7 +898,7 @@ function toggleCategories() {
       // Show only categories of the current idol (respecting search)
       visibleCategories = categories.filter(cat =>
         catalog.some(it =>
-          it.category === cat &&
+          (it.categories && it.categories.some(c => c === cat)) &&
           it.folder.toLowerCase() === currentIdolFilter.toLowerCase() &&
           (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
         )
@@ -902,7 +908,7 @@ function toggleCategories() {
       // Show categories matching search term only
       visibleCategories = categories.filter(cat =>
         catalog.some(it =>
-          it.category === cat &&
+          (it.categories && it.categories.some(c => c === cat)) &&
           it.folder.toLowerCase().includes(searchTerm)
         )
       );
@@ -943,7 +949,7 @@ if (currentCategoryFilter === cat) {
     // Build the idol's categories but preserve categories.txt order
     const idolCats = categories.filter(cat =>
       catalog.some(it =>
-        it.category === cat &&
+        (it.categories && it.categories.some(c => c === cat)) &&
         it.folder === currentIdolFilter &&
         (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
       )
@@ -963,7 +969,7 @@ if (currentCategoryFilter === cat) {
     )];
     const visibleCats = categories.filter(cat =>
       catalog.some(it =>
-        it.category === cat &&
+        (it.categories && it.categories.some(c => c === cat)) &&
         (!searchTerm || it.folder.toLowerCase().includes(searchTerm)) &&
         (!currentIdolFilter || it.folder === currentIdolFilter)
       )
@@ -1016,7 +1022,7 @@ function applyFilters() {
   filteredCatalog = catalog.filter(it => {
     const matchSearch = !hasSearch || it.folder.toLowerCase().includes(searchTerm);
     const matchIdol = !hasIdol || it.folder.toLowerCase().includes(idolFilter);
-    const matchCat = !hasCat || (it.category && it.category.toLowerCase() === currentCategoryFilter?.toLowerCase());
+    const matchCat = !hasCat || (it.categories && it.categories.some(c => c.toLowerCase() === currentCategoryFilter?.toLowerCase()));
     return matchSearch && matchIdol && matchCat;
   });
 
@@ -1027,7 +1033,7 @@ function applyFilters() {
   // Build the categories list for search results but keep categories.txt order
     const searchCats = categories.filter(cat =>
       catalog.some(it =>
-        it.category === cat &&
+        (it.categories && it.categories.some(c => c === cat)) &&
         it.folder.toLowerCase().includes(searchTerm)
       )
     );
@@ -1051,7 +1057,7 @@ async function loadCatalog() {
     filteredCatalog = catalog.slice();
     const allIdols = [...new Set(catalog.map(it => it.folder))];
     renderIdolButtons(allIdols);
-    const allCategories = [...new Set(catalog.map(it => it.category))];
+    const allCategories = [...new Set(catalog.flatMap(it => it.categories))];
     renderCategoryButtons(allCategories);
 
     showRandom();
