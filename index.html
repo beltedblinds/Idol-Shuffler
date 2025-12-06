@@ -836,8 +836,9 @@ function toggleCatalogIdol(folderName, btn) {
         it.folder === folderName &&
         (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
       )
-      .map(it => it.category)
+      .flatMap(it => it.categories)
   )];
+
 
   // 🩷 Keep original order from `categories` file
   const orderedIdolCats = categories.filter(cat => idolCats.includes(cat));
@@ -993,12 +994,12 @@ const searchTerm = searchInput.value.trim().toLowerCase();
 const idolsWithCat = [...new Set(
   catalog
     .filter(it =>
-      it.category &&
-      it.category.toLowerCase() === currentCategoryFilter.toLowerCase() &&
+      it.categories && it.categories.some(c => c.toLowerCase() === currentCategoryFilter.toLowerCase()) &&
       (!searchTerm || it.folder.toLowerCase().includes(searchTerm))
     )
     .map(it => it.folder)
 )];
+
 
 
   if (!currentIdolFilter) {
