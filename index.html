@@ -518,9 +518,13 @@ function displayUrl(url, folder, pushHist = true) {
   if (!url) return;
 
   const wrapper = document.querySelector(".image-wrapper");
-  wrapper.innerHTML = ''; // clear old media
-  wrapper.appendChild(saveBtn); // keep save button on top
-  wrapper.appendChild(document.getElementById("soundBtn")); // ✅ keep sound button on top
+  
+  /* ✅ SAFELY remove only the old media (NOT buttons) */
+  const oldMedia = wrapper.querySelector("img, video");
+  if (oldMedia) oldMedia.remove();
+  
+  /* ✅ Keep buttons intact (no re-append needed) */
+
 
 
   let media;
@@ -536,7 +540,7 @@ function displayUrl(url, folder, pushHist = true) {
     media.style.borderRadius = "16px";
   
     currentVideoEl = media; // ✅ track current video
-    updateSoundIcon(); // ✅ update button icon
+    if (typeof updateSoundIcon === "function") updateSoundIcon();
   }  else {
     media = document.createElement("img");
     media.src = url;
@@ -1090,6 +1094,7 @@ window.addEventListener("keydown", e => {
 loadSaved();
 loadCatalog();
 loadCategories();
+updateSoundIcon(); // ✅ initialize sound icon on load
   
 </script>
 </body>
