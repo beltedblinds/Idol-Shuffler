@@ -459,9 +459,14 @@
   <button class="btn" id="randomBtn">Random</button>
   <div class="toggle" id="cycleToggle"><span id="cycleLabel">Cycle Off</span></div>
   <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
+
+  <!-- ✅ NEW: Videos Only Toggle -->
+  <div class="toggle" id="videoOnlyToggle"><span id="videoOnlyLabel">Videos Only: Off</span></div>
+
   <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog</span></div>
   <div class="toggle" id="categoryToggle"><span id="categoryLabel">Categories</span></div>
 </div>
+
 
 <!-- 🩷 Idol buttons now floating on left -->
 <div id="idolButtons"></div>
@@ -505,6 +510,7 @@ const CYCLE_MS = 7000;
 let seenImages = new Set();
 let currentMediaUrl = ""; // 🩷 track current image/video URL
 let soundEnabled = false; // ✅ sound OFF by default
+let videoOnlyMode = false; // ✅ when true, only videos are allowed
 let currentVideoEl = null; // ✅ tracks active video element
 
 
@@ -528,6 +534,9 @@ const idolButtonsEl = document.getElementById("idolButtons");
 const soundBtn = document.getElementById("soundBtn");
 const videoProgressContainer = document.getElementById("videoProgressContainer");
 const videoProgress = document.getElementById("videoProgress");
+const videoOnlyToggle = document.getElementById("videoOnlyToggle");
+const videoOnlyLabel = document.getElementById("videoOnlyLabel");
+
 
 
 /* Parser and functions (same as before) */
@@ -611,9 +620,19 @@ function displayUrl(url, folder, pushHist = true) {
 
 
 function getCurrentPool() {
-  if (savedMode && saved.length) return saved;
-  if (filteredCatalog.length) return filteredCatalog;
-  return catalog;
+  let pool = [];
+  if (savedMode && saved.length) pool = saved;
+  else if (filteredCatalog.length) pool = filteredCatalog;
+  else pool = catalog;
+
+  // ✅ APPLY VIDEO ONLY FILTER
+  if (videoOnlyMode) {
+    pool = pool.filter(item =>
+      /\.(mp4|webm|mov)$/i.test(item.raw || item.url)
+    );
+  }
+
+  return pool;
 }
 
 function showRandom() {
@@ -679,6 +698,14 @@ function saveCurrent() {
   renderSaved();
   saveBtn.classList.toggle("saved", idx === -1);
 }
+
+function toggleVideoOnly() {
+  videoOnlyMode = !videoOnlyMode;
+  videoOnlyLabel.textContent = "Videos Only: " + (videoOnlyMode ? "On" : "Off");
+  seenImages.clear();
+  showRandom();
+}
+
 
 function toggleSound() {
   soundEnabled = !soundEnabled;
@@ -1123,6 +1150,7 @@ soundBtn.onclick = toggleSound;
 searchBtn.onclick = () => selectFolder(searchInput.value);
 catalogToggle.onclick = toggleCatalog;
 categoryToggle.onclick = toggleCategories;
+videoOnlyToggle.onclick = toggleVideoOnly;
 
 
 searchInput.addEventListener("input", e => handleSearch(e.target.value));
