@@ -38,6 +38,14 @@
     letter-spacing: 1px;
   }
 
+  .search-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+
   .search-container {
     position: relative;
     display: flex;
@@ -461,15 +469,17 @@
 <body>
 <h1>💖 K-pop Idol Gallery</h1>
 
-<div class="search-container">
-  <input id="searchInput" placeholder="Search folder..." />
-  <button id="searchBtn">🔍 Search</button>
+<div class="search-row">
+  <div class="search-container">
+    <input id="searchInput" placeholder="Search folder..." />
+    <button id="searchBtn">🔍 Search</button>
+    <div id="suggestions" hidden></div>
+  </div>
 
-  <!-- ✅ 🎥 Video-only toggle now beside search -->
+  <!-- ✅ 🎥 Separate video-only toggle to the right -->
   <button class="toggle" id="videoOnlyToggle" title="Videos Only">🎥</button>
-
-  <div id="suggestions" hidden></div>
 </div>
+
 
 
 <div class="controls">
