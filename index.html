@@ -44,12 +44,14 @@
     align-items: center;
     gap: 8px;
     margin-bottom: 20px;
-    width: 340px;
+    width: auto;               /* ✅ allows natural sizing */
     max-width: 95vw;
   }
 
+
   #searchInput {
-    flex: 1;
+    width: 220px;              /* ✅ LOCKED SIZE — no shrinking */
+    flex: none;                /* ✅ prevents flex resizing */
     padding: 10px 14px;
     border-radius: 8px;
     border: 1px solid #333;
@@ -58,6 +60,7 @@
     font-size: 14px;
     outline: none;
   }
+
 
   #searchInput:focus { border-color: var(--accent); }
 
