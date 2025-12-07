@@ -38,14 +38,6 @@
     letter-spacing: 1px;
   }
 
-  .search-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-
-
   .search-container {
     position: relative;
     display: flex;
@@ -226,26 +218,13 @@
   cursor: pointer;
   font-size: 18px;
   transition: all 0.2s ease;
-  }
-  
-  #soundBtn:hover {
-    background: rgba(255, 123, 203, 0.25);
-    color: var(--accent);
-  }
+}
 
-  #videoOnlyToggle {
-    font-size: 18px;
-    padding: 9px 12px;
-  }
-  
-  #videoOnlyToggle.active {
-    color: var(--accent);
-    border-color: var(--accent);
-    box-shadow: 0 0 10px rgba(255, 123, 203, 0.6);
-  }
+#soundBtn:hover {
+  background: rgba(255, 123, 203, 0.25);
+  color: var(--accent);
+}
 
-
-  
 
   #label {
     margin-top: 12px;
@@ -469,30 +448,20 @@
 <body>
 <h1>💖 K-pop Idol Gallery</h1>
 
-<div class="search-row">
-  <div class="search-container">
-    <input id="searchInput" placeholder="Search folder..." />
-    <button id="searchBtn">🔍 Search</button>
-    <div id="suggestions" hidden></div>
-  </div>
-
-  <!-- ✅ 🎥 Separate video-only toggle to the right -->
-  <button class="toggle" id="videoOnlyToggle" title="Videos Only">🎥</button>
+<div class="search-container">
+  <input id="searchInput" placeholder="Search folder..." />
+  <button id="searchBtn">🔍 Search</button>
+  <div id="suggestions" hidden></div>
 </div>
-
-
 
 <div class="controls">
   <button class="btn" id="prevBtn">Previous</button>
   <button class="btn" id="randomBtn">Random</button>
   <div class="toggle" id="cycleToggle"><span id="cycleLabel">Cycle Off</span></div>
   <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
-
-
   <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog</span></div>
   <div class="toggle" id="categoryToggle"><span id="categoryLabel">Categories</span></div>
 </div>
-
 
 <!-- 🩷 Idol buttons now floating on left -->
 <div id="idolButtons"></div>
@@ -536,7 +505,6 @@ const CYCLE_MS = 7000;
 let seenImages = new Set();
 let currentMediaUrl = ""; // 🩷 track current image/video URL
 let soundEnabled = false; // ✅ sound OFF by default
-let videoOnlyMode = false; // ✅ when true, only videos are allowed
 let currentVideoEl = null; // ✅ tracks active video element
 
 
@@ -560,8 +528,6 @@ const idolButtonsEl = document.getElementById("idolButtons");
 const soundBtn = document.getElementById("soundBtn");
 const videoProgressContainer = document.getElementById("videoProgressContainer");
 const videoProgress = document.getElementById("videoProgress");
-const videoOnlyToggle = document.getElementById("videoOnlyToggle");
-
 
 
 /* Parser and functions (same as before) */
@@ -645,19 +611,9 @@ function displayUrl(url, folder, pushHist = true) {
 
 
 function getCurrentPool() {
-  let pool = [];
-  if (savedMode && saved.length) pool = saved;
-  else if (filteredCatalog.length) pool = filteredCatalog;
-  else pool = catalog;
-
-  // ✅ APPLY VIDEO ONLY FILTER
-  if (videoOnlyMode) {
-    pool = pool.filter(item =>
-      /\.(mp4|webm|mov)$/i.test(item.raw || item.url)
-    );
-  }
-
-  return pool;
+  if (savedMode && saved.length) return saved;
+  if (filteredCatalog.length) return filteredCatalog;
+  return catalog;
 }
 
 function showRandom() {
@@ -722,16 +678,6 @@ function saveCurrent() {
   persistSaved();
   renderSaved();
   saveBtn.classList.toggle("saved", idx === -1);
-}
-
-function toggleVideoOnly() {
-  videoOnlyMode = !videoOnlyMode;
-
-  // ✅ Visual ON/OFF state using icon glow
-  videoOnlyToggle.classList.toggle("active", videoOnlyMode);
-
-  seenImages.clear();
-  showRandom();
 }
 
 function toggleSound() {
@@ -1177,7 +1123,6 @@ soundBtn.onclick = toggleSound;
 searchBtn.onclick = () => selectFolder(searchInput.value);
 catalogToggle.onclick = toggleCatalog;
 categoryToggle.onclick = toggleCategories;
-videoOnlyToggle.onclick = toggleVideoOnly;
 
 
 searchInput.addEventListener("input", e => handleSearch(e.target.value));
