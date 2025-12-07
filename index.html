@@ -72,6 +72,33 @@
     font-size: 14px;
   }
 
+  #videoOnlyBtn {
+    background: var(--card);
+    border: 1px solid #333;
+    color: var(--text);
+    width: 42px;              /* ✅ square */
+    height: 42px;             /* ✅ matches search height */
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  #videoOnlyBtn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  
+  #videoOnlyBtn:hover {
+    background: #272727;
+    border-color: var(--accent);
+    color: var(--accent-hover);
+  }
+
+
   #searchBtn:hover {
     background: #272727;
     border-color: var(--accent);
@@ -450,9 +477,15 @@
 
 <div class="search-container">
   <input id="searchInput" placeholder="Search folder..." />
+
   <button id="searchBtn">🔍 Search</button>
+
+  <!-- 🎥 Video Only Toggle -->
+  <button id="videoOnlyBtn" title="Video Only">🎥</button>
+
   <div id="suggestions" hidden></div>
 </div>
+
 
 <div class="controls">
   <button class="btn" id="prevBtn">Previous</button>
@@ -506,6 +539,7 @@ let seenImages = new Set();
 let currentMediaUrl = ""; // 🩷 track current image/video URL
 let soundEnabled = false; // ✅ sound OFF by default
 let currentVideoEl = null; // ✅ tracks active video element
+let videoOnlyMode = false; // 🎥 video-only toggle
 
 
 /* DOM */
@@ -521,6 +555,7 @@ const savedModeToggle = document.getElementById("savedModeToggle");
 const savedModeLabel = document.getElementById("savedModeLabel");
 const searchInput = document.getElementById("searchInput");
 const searchBtn = document.getElementById("searchBtn");
+const videoOnlyBtn = document.getElementById("videoOnlyBtn");
 const suggestionsEl = document.getElementById("suggestions");
 const catalogPanel = document.getElementById("catalogPanel");
 const catalogToggle = document.getElementById("catalogToggle");
@@ -1061,25 +1096,19 @@ function applyFilters() {
   const hasCat = !!currentCategoryFilter;
 
   filteredCatalog = catalog.filter(it => {
+    const isVideo = /\.(mp4|webm|mov)$/i.test(it.raw || it.url);
+
+    const matchVideo = !videoOnlyMode || isVideo;
     const matchSearch = !hasSearch || it.folder.toLowerCase().includes(searchTerm);
     const matchIdol = !hasIdol || it.folder.toLowerCase().includes(idolFilter);
-    const matchCat = !hasCat || (it.categories && it.categories.some(c => c.toLowerCase() === currentCategoryFilter?.toLowerCase()));
-    return matchSearch && matchIdol && matchCat;
+    const matchCat = !hasCat || (it.categories && it.categories.some(
+      c => c.toLowerCase() === currentCategoryFilter?.toLowerCase()
+    ));
+
+    return matchVideo && matchSearch && matchIdol && matchCat;
   });
 
   if (catalogOpen) renderCatalogThumbnails();
-
-  // 🩷 Update categories dynamically based on search term
-  if (hasSearch && !hasIdol && !hasCat) {
-  // Build the categories list for search results but keep categories.txt order
-    const searchCats = categories.filter(cat =>
-      catalog.some(it =>
-        (it.categories && it.categories.some(c => c === cat)) &&
-        it.folder.toLowerCase().includes(searchTerm)
-      )
-    );
-    renderCategoryButtons(searchCats);
-  }
 }
 
 
@@ -1123,6 +1152,14 @@ soundBtn.onclick = toggleSound;
 searchBtn.onclick = () => selectFolder(searchInput.value);
 catalogToggle.onclick = toggleCatalog;
 categoryToggle.onclick = toggleCategories;
+
+videoOnlyBtn.onclick = () => {
+  videoOnlyMode = !videoOnlyMode;
+  videoOnlyBtn.classList.toggle("active", videoOnlyMode);
+  applyFilters();
+  showRandom();
+};
+
 
 
 searchInput.addEventListener("input", e => handleSearch(e.target.value));
