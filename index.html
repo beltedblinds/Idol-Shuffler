@@ -218,13 +218,26 @@
   cursor: pointer;
   font-size: 18px;
   transition: all 0.2s ease;
-}
+  }
+  
+  #soundBtn:hover {
+    background: rgba(255, 123, 203, 0.25);
+    color: var(--accent);
+  }
 
-#soundBtn:hover {
-  background: rgba(255, 123, 203, 0.25);
-  color: var(--accent);
-}
+  #videoOnlyToggle {
+    font-size: 18px;
+    padding: 9px 12px;
+  }
+  
+  #videoOnlyToggle.active {
+    color: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 10px rgba(255, 123, 203, 0.6);
+  }
 
+
+  
 
   #label {
     margin-top: 12px;
@@ -451,8 +464,13 @@
 <div class="search-container">
   <input id="searchInput" placeholder="Search folder..." />
   <button id="searchBtn">🔍 Search</button>
+
+  <!-- ✅ 🎥 Video-only toggle now beside search -->
+  <button class="toggle" id="videoOnlyToggle" title="Videos Only">🎥</button>
+
   <div id="suggestions" hidden></div>
 </div>
+
 
 <div class="controls">
   <button class="btn" id="prevBtn">Previous</button>
@@ -460,8 +478,6 @@
   <div class="toggle" id="cycleToggle"><span id="cycleLabel">Cycle Off</span></div>
   <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
 
-  <!-- ✅ NEW: Videos Only Toggle -->
-  <div class="toggle" id="videoOnlyToggle"><span id="videoOnlyLabel">Videos Only: Off</span></div>
 
   <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog</span></div>
   <div class="toggle" id="categoryToggle"><span id="categoryLabel">Categories</span></div>
@@ -535,7 +551,6 @@ const soundBtn = document.getElementById("soundBtn");
 const videoProgressContainer = document.getElementById("videoProgressContainer");
 const videoProgress = document.getElementById("videoProgress");
 const videoOnlyToggle = document.getElementById("videoOnlyToggle");
-const videoOnlyLabel = document.getElementById("videoOnlyLabel");
 
 
 
@@ -701,11 +716,13 @@ function saveCurrent() {
 
 function toggleVideoOnly() {
   videoOnlyMode = !videoOnlyMode;
-  videoOnlyLabel.textContent = "Videos Only: " + (videoOnlyMode ? "On" : "Off");
+
+  // ✅ Visual ON/OFF state using icon glow
+  videoOnlyToggle.classList.toggle("active", videoOnlyMode);
+
   seenImages.clear();
   showRandom();
 }
-
 
 function toggleSound() {
   soundEnabled = !soundEnabled;
