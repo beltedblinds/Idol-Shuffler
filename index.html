@@ -250,6 +250,30 @@
   transition: all 0.2s ease;
 }
 
+/* 🔊 Volume control */
+#volumeControl {
+  position: absolute;
+  top: 60px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 10px;
+  padding: 8px;
+  display: none;
+  z-index: 3;
+}
+
+/* Show slider when hovering sound button OR slider */
+#soundBtn:hover + #volumeControl,
+#volumeControl:hover {
+  display: block;
+}
+
+#volumeSlider {
+  width: 100px;
+  cursor: pointer;
+}
+
+
 #soundBtn:hover {
   background: rgba(255, 123, 203, 0.25);
   color: var(--accent);
@@ -508,7 +532,15 @@
 <div class="image-wrapper">
   <button id="saveBtn" title="Save / Unsave">💾</button>
   <button id="soundBtn" title="Toggle Sound">🔇</button>
+
+  <!-- 🔊 Volume slider (hidden until hover) -->
+  <div id="volumeControl">
+    <input type="range" id="volumeSlider" min="0" max="100" value="50">
+  </div>
+  
   <img id="idolImage" src="" alt="Idol" />
+
+  
   <div id="videoProgressContainer">
     <div id="videoProgress"></div>
   </div>
@@ -542,6 +574,7 @@ let seenImages = new Set();
 let currentMediaUrl = ""; // 🩷 track current image/video URL
 let soundEnabled = false; // ✅ sound OFF by default
 let currentVideoEl = null; // ✅ tracks active video element
+let currentVolume = 0.5; // 🔊 default volume (50%)
 let videoOnlyMode = false; // 🎥 video-only toggle
 
 
@@ -566,6 +599,23 @@ const idolButtonsEl = document.getElementById("idolButtons");
 const soundBtn = document.getElementById("soundBtn");
 const videoProgressContainer = document.getElementById("videoProgressContainer");
 const videoProgress = document.getElementById("videoProgress");
+
+/* 🔊 Volume Slider */
+const volumeSlider = document.getElementById("volumeSlider");
+
+volumeSlider.addEventListener("input", e => {
+  currentVolume = e.target.value / 100;
+
+  if (currentVideoEl) {
+    currentVideoEl.volume = currentVolume;
+
+    if (currentVolume > 0 && !soundEnabled) {
+      soundEnabled = true;
+      currentVideoEl.muted = false;
+      updateSoundIcon();
+    }
+  }
+});
 
 
 /* Parser and functions (same as before) */
@@ -605,6 +655,7 @@ function displayUrl(url, folder, pushHist = true) {
     media.loop = true;
     media.muted = !soundEnabled; // ✅ respect sound toggle
     media.playsInline = true;
+    media.volume = currentVolume;
     media.style.maxWidth = "100%";
     media.style.maxHeight = "78vh";
     media.style.borderRadius = "16px";
@@ -723,7 +774,13 @@ function toggleSound() {
 
   if (currentVideoEl) {
     currentVideoEl.muted = !soundEnabled;
+    if (soundEnabled && currentVolume === 0) {
+      currentVolume = 0.5;
+      volumeSlider.value = 50;
+      currentVideoEl.volume = currentVolume;
+    }
   }
+
 
   updateSoundIcon();
 }
