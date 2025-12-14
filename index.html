@@ -270,12 +270,17 @@
 
 #volumeSlider {
   -webkit-appearance: none;
-  width: 200%;
-  height: 100%;
-  writing-mode: bt-lr; /* vertical slider */
-  transform: rotate(-90deg); /* vertical orientation */
+  width: 200px;          /* length of the slider line */
+  height: 6px;           /* thickness of the track */
+  transform: rotate(-90deg);
   background: transparent;
   cursor: pointer;
+
+  /* Center horizontally inside container */
+  position: absolute;
+  top: 50%;              /* vertical center of container */
+  left: 50%;             /* horizontal center of container */
+  transform: rotate(-90deg) translate(-50%, -50%);
 }
 
 #volumeSlider::-webkit-slider-thumb {
