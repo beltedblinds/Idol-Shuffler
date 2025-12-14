@@ -231,26 +231,7 @@
     color: var(--accent);
   }
 
-  #soundBtn {
-  position: absolute;
-  top: 12px;
-  right: 12px; /* ✅ top-right of video */
-  z-index: 2;
-  background: rgba(0, 0, 0, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 18px;
-  transition: all 0.2s ease;
-}
-
-#soundContainer {
+  #soundContainer {
   position: absolute;
   top: 12px;
   right: 12px;
@@ -258,31 +239,28 @@
   align-items: center;
   gap: 6px;
   transition: width 0.3s ease, padding 0.3s ease;
-  overflow: hidden;
-  width: 40px; /* collapsed width (same as button) */
+  width: auto; /* let button size naturally */
   background: rgba(0,0,0,0.55);
   border-radius: 50px;
-  padding: 0;
+  padding: 4px; /* small padding around button */
   z-index: 2;
 }
 
-#soundContainer:hover {
-  width: 140px; /* expand width to fit slider */
-  padding: 0 8px;
-}
-
+/* slider hidden by default */
 #volumeSlider {
   -webkit-appearance: none;
-  width: 80px;
+  width: 0px;       /* hidden initially */
   height: 4px;
   background: #333;
   border-radius: 2px;
   cursor: pointer;
+  transition: width 0.3s ease, opacity 0.3s ease;
   opacity: 0;
-  transition: opacity 0.2s ease;
 }
 
+/* slider expands on hover */
 #soundContainer:hover #volumeSlider {
+  width: 80px;
   opacity: 1;
 }
 
@@ -303,11 +281,27 @@
   cursor: pointer;
 }
 
+/* Keep sound button visible always */
+#soundBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
 
 #soundBtn:hover {
-  background: rgba(255, 123, 203, 0.25);
+  background: rgba(255,123,203,0.25);
   color: var(--accent);
 }
+
 
 
   #label {
