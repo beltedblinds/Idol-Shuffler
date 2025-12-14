@@ -255,6 +255,62 @@
   color: var(--accent);
 }
 
+#volumeSliderContainer {
+  position: absolute;
+  top: 50px; /* below the sound button */
+  right: 12px; /* align with sound button */
+  width: 30px;
+  height: 120px;
+  display: none; /* hidden by default */
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 10px;
+  z-index: 3;
+}
+
+#volumeSlider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 100%;
+  writing-mode: bt-lr; /* vertical slider */
+  transform: rotate(-90deg); /* vertical orientation */
+  background: transparent;
+  cursor: pointer;
+}
+
+#volumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1px solid #fff;
+}
+
+#volumeSlider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  background: #555;
+  border-radius: 2px;
+}
+
+#volumeSlider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border-radius: 50%;
+  border: 1px solid #fff;
+}
+
+#volumeSlider::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  background: #555;
+  border-radius: 2px;
+}
+
+
 
   #label {
     margin-top: 12px;
@@ -508,6 +564,11 @@
 <div class="image-wrapper">
   <button id="saveBtn" title="Save / Unsave">💾</button>
   <button id="soundBtn" title="Toggle Sound">🔇</button>
+
+  <div id="volumeSliderContainer">
+    <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1">
+  </div>
+  
   <img id="idolImage" src="" alt="Idol" />
   <div id="videoProgressContainer">
     <div id="videoProgress"></div>
@@ -610,6 +671,7 @@ function displayUrl(url, folder, pushHist = true) {
     media.style.borderRadius = "16px";
   
     currentVideoEl = media; // ✅ track current video
+    volumeSlider.value = media.volume; // ✅ keep slider in sync with video
     if (typeof updateSoundIcon === "function") updateSoundIcon();
   }  else {
     media = document.createElement("img");
@@ -1203,6 +1265,48 @@ loadSaved();
 loadCatalog();
 loadCategories();
 updateSoundIcon(); // ✅ initialize sound icon on load
+
+const volumeContainer = document.getElementById("volumeSliderContainer");
+const volumeSlider = document.getElementById("volumeSlider");
+
+// Show slider when hovering over sound button
+soundBtn.addEventListener("mouseenter", () => {
+  volumeContainer.style.display = "block";
+});
+
+soundBtn.addEventListener("mouseleave", () => {
+  setTimeout(() => {
+    if (!volumeContainer.matches(':hover')) {
+      volumeContainer.style.display = "none";
+    }
+  }, 100);
+});
+
+// Keep slider visible if hovering over it
+volumeContainer.addEventListener("mouseleave", () => {
+  volumeContainer.style.display = "none";
+});
+
+// Sync slider with video volume
+volumeSlider.addEventListener("input", () => {
+  if (currentVideoEl) currentVideoEl.volume = parseFloat(volumeSlider.value);
+  if (!soundEnabled && parseFloat(volumeSlider.value) > 0) {
+    soundEnabled = true;
+    updateSoundIcon();
+    if (currentVideoEl) currentVideoEl.muted = false;
+  } else if (parseFloat(volumeSlider.value) === 0) {
+    soundEnabled = false;
+    updateSoundIcon();
+    if (currentVideoEl) currentVideoEl.muted = true;
+  }
+});
+
+// Update slider when changing videos
+function updateSliderValue() {
+  if (currentVideoEl) {
+    volumeSlider.value = currentVideoEl.volume;
+  }
+}
   
 </script>
 </body>
