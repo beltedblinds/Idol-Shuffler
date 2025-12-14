@@ -384,41 +384,6 @@
     border-color: var(--accent);
   }
 
-#soundControl {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 2;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
-  padding: 6px;
-  border-radius: 999px;
-}
-
-
-#volumeSlider {
-  appearance: none;
-  width: 90px;
-  height: 4px;
-
-  transform: rotate(-90deg);
-  margin-bottom: 12px;
-
-  opacity: 0;
-  pointer-events: none;
-
-  transition: opacity 0.2s ease;
-}
-
-#soundControl:hover #volumeSlider {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-
 /* 🌸 Idol buttons (left side) */
 #idolButtons {
   position: fixed;
@@ -542,18 +507,7 @@
 
 <div class="image-wrapper">
   <button id="saveBtn" title="Save / Unsave">💾</button>
-  <div id="soundControl">
-    <button id="soundBtn" title="Toggle Sound">🔇</button>
-    <input
-      id="volumeSlider"
-      type="range"
-      min="0"
-      max="1"
-      step="0.01"
-      value="0.5"
-    />
-  </div>
-
+  <button id="soundBtn" title="Toggle Sound">🔇</button>
   <img id="idolImage" src="" alt="Idol" />
   <div id="videoProgressContainer">
     <div id="videoProgress"></div>
@@ -610,7 +564,6 @@ const catalogPanel = document.getElementById("catalogPanel");
 const catalogToggle = document.getElementById("catalogToggle");
 const idolButtonsEl = document.getElementById("idolButtons");
 const soundBtn = document.getElementById("soundBtn");
-const volumeSlider = document.getElementById("volumeSlider");
 const videoProgressContainer = document.getElementById("videoProgressContainer");
 const videoProgress = document.getElementById("videoProgress");
 
@@ -651,7 +604,6 @@ function displayUrl(url, folder, pushHist = true) {
     media.autoplay = true;
     media.loop = true;
     media.muted = !soundEnabled; // ✅ respect sound toggle
-    media.volume = volumeSlider.value;
     media.playsInline = true;
     media.style.maxWidth = "100%";
     media.style.maxHeight = "78vh";
@@ -771,15 +723,10 @@ function toggleSound() {
 
   if (currentVideoEl) {
     currentVideoEl.muted = !soundEnabled;
-
-    if (soundEnabled && currentVideoEl.volume === 0) {
-      currentVideoEl.volume = volumeSlider.value;
-    }
   }
 
   updateSoundIcon();
 }
-
 
 function updateSoundIcon() {
   soundBtn.textContent = soundEnabled ? "🔊" : "🔇";
@@ -1205,18 +1152,6 @@ cycleToggle.onclick = toggleCycle;
 savedModeToggle.onclick = toggleSavedMode;
 saveBtn.onclick = saveCurrent;
 soundBtn.onclick = toggleSound;
-volumeSlider.addEventListener("input", () => {
-  if (!currentVideoEl) return;
-
-  currentVideoEl.volume = volumeSlider.value;
-
-  if (volumeSlider.value > 0) {
-    soundEnabled = true;
-    currentVideoEl.muted = false;
-  }
-
-  updateSoundIcon();
-});
 searchBtn.onclick = () => selectFolder(searchInput.value);
 catalogToggle.onclick = toggleCatalog;
 categoryToggle.onclick = toggleCategories;
