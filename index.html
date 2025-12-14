@@ -595,6 +595,8 @@ let currentMediaUrl = ""; // 🩷 track current image/video URL
 let soundEnabled = false; // ✅ sound OFF by default
 let currentVideoEl = null; // ✅ tracks active video element
 let videoOnlyMode = false; // 🎥 video-only toggle
+let globalVolume = 0.5; // initial volume 50%
+
 
 
 /* DOM */
@@ -656,6 +658,7 @@ function displayUrl(url, folder, pushHist = true) {
     media.autoplay = true;
     media.loop = true;
     media.muted = !soundEnabled; // ✅ respect sound toggle
+    media.volume = globalVolume;        // ✅ apply stored volume
     media.playsInline = true;
     media.style.maxWidth = "100%";
     media.style.maxHeight = "78vh";
@@ -787,6 +790,7 @@ function updateSoundIcon() {
 // 🎚️ Handle slider input
 volumeSlider.addEventListener("input", e => {
   const volume = e.target.value / 100;
+  globalVolume = volume;               // ✅ store globally
   if (currentVideoEl) {
     currentVideoEl.volume = volume;
     currentVideoEl.muted = volume === 0;
