@@ -250,6 +250,60 @@
   transition: all 0.2s ease;
 }
 
+#soundContainer {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: width 0.3s ease, padding 0.3s ease;
+  overflow: hidden;
+  width: 40px; /* collapsed width (same as button) */
+  background: rgba(0,0,0,0.55);
+  border-radius: 50px;
+  padding: 0;
+  z-index: 2;
+}
+
+#soundContainer:hover {
+  width: 140px; /* expand width to fit slider */
+  padding: 0 8px;
+}
+
+#volumeSlider {
+  -webkit-appearance: none;
+  width: 80px;
+  height: 4px;
+  background: #333;
+  border-radius: 2px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+#soundContainer:hover #volumeSlider {
+  opacity: 1;
+}
+
+#volumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+#volumeSlider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+
 #soundBtn:hover {
   background: rgba(255, 123, 203, 0.25);
   color: var(--accent);
@@ -507,7 +561,11 @@
 
 <div class="image-wrapper">
   <button id="saveBtn" title="Save / Unsave">💾</button>
-  <button id="soundBtn" title="Toggle Sound">🔇</button>
+  <div id="soundContainer">
+    <button id="soundBtn" title="Toggle Sound">🔇</button>
+    <input type="range" id="volumeSlider" min="0" max="100" value="50">
+  </div>
+
   <img id="idolImage" src="" alt="Idol" />
   <div id="videoProgressContainer">
     <div id="videoProgress"></div>
@@ -718,19 +776,34 @@ function saveCurrent() {
   saveBtn.classList.toggle("saved", idx === -1);
 }
 
+const volumeSlider = document.getElementById("volumeSlider");
+
 function toggleSound() {
   soundEnabled = !soundEnabled;
-
   if (currentVideoEl) {
     currentVideoEl.muted = !soundEnabled;
   }
-
   updateSoundIcon();
 }
 
 function updateSoundIcon() {
   soundBtn.textContent = soundEnabled ? "🔊" : "🔇";
 }
+
+// 🎚️ Handle slider input
+volumeSlider.addEventListener("input", e => {
+  const volume = e.target.value / 100;
+  if (currentVideoEl) {
+    currentVideoEl.volume = volume;
+    currentVideoEl.muted = volume === 0;
+    soundEnabled = volume > 0;
+    updateSoundIcon();
+  }
+});
+
+// Initialize slider at 50%
+volumeSlider.value = 50;
+
 
 
   
