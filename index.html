@@ -232,10 +232,6 @@
   }
 
   #soundBtn {
-  position: absolute;
-  top: 12px;
-  right: 12px; /* ✅ top-right of video */
-  z-index: 2;
   background: rgba(0, 0, 0, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
@@ -253,20 +249,12 @@
 /* 🔊 Volume control */
 #volumeControl {
   position: absolute;
-  top: 60px;
-  right: 12px;
   background: rgba(0, 0, 0, 0.75);
   border-radius: 10px;
   padding: 8px;
   display: none;
-  z-index: 3;
 }
 
-/* Show slider when hovering sound button OR slider */
-#soundBtn:hover + #volumeControl,
-#volumeControl:hover {
-  display: block;
-}
 
 #volumeSlider {
   width: 100px;
@@ -531,12 +519,15 @@
 
 <div class="image-wrapper">
   <button id="saveBtn" title="Save / Unsave">💾</button>
-  <button id="soundBtn" title="Toggle Sound">🔇</button>
-
-  <!-- 🔊 Volume slider (hidden until hover) -->
-  <div id="volumeControl">
-    <input type="range" id="volumeSlider" min="0" max="100" value="50">
+  <div id="soundWrapper">
+    <button id="soundBtn" title="Toggle Sound">🔇</button>
+  
+    <!-- 🔊 Volume slider -->
+    <div id="volumeControl">
+      <input type="range" id="volumeSlider" min="0" max="100" value="50">
+    </div>
   </div>
+
   
   <img id="idolImage" src="" alt="Idol" />
 
