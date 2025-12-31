@@ -580,6 +580,7 @@
 // 🖼️ + 🎥 Combined sources
 const MEDIA_URL = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links.txt";
 const MEDIA_URL_02 = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links_02.txt";
+const MEDIA_URL_03 = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links_03.txt";
 
   
 let catalog = [];
@@ -1192,13 +1193,21 @@ function applyFilters() {
 
 async function loadCatalog() {
   try {
-    const [r1, r2] = await Promise.all([
+    const [r1, r2, r3] = await Promise.all([
       fetch(MEDIA_URL),
-      fetch(MEDIA_URL_02)
+      fetch(MEDIA_URL_02),
+      fetch(MEDIA_URL_03)
     ]);
-    const [t1, t2] = await Promise.all([r1.text(), r2.text()]);
-    const combined = t1 + "\n" + t2;
+
+    const [t1, t2, t3] = await Promise.all([
+      r1.text(),
+      r2.text(),
+      r3.text()
+    ]);
+
+    const combined = t1 + "\n" + t2 + "\n" + t3;
     catalog = parseCatalogText(combined);
+
 
     filteredCatalog = catalog.slice();
     const allIdols = [...new Set(catalog.map(it => it.folder))];
