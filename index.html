@@ -1305,19 +1305,35 @@ function updateProgress() {
 // Click-to-seek functionality
 videoProgressContainer.addEventListener("click", e => {
   if (!currentVideoEl || !totalDuration) return;
+
   const rect = videoProgressContainer.getBoundingClientRect();
   const clickX = e.clientX - rect.left;
   const width = rect.width;
   const seekTime = (clickX / width) * totalDuration;
 
-  // Find which part corresponds to seekTime
+  if (multipartParts.length === 1) {
+    // ✅ Single-part video: just set currentTime
+    currentVideoEl.currentTime = seekTime;
+    return;
+  }
+
+  // ✅ Multipart video: find which part corresponds to seekTime
   let cumulative = 0;
   for (let i = 0; i < multipartParts.length; i++) {
     const dur = partDurations[i] || 0;
     if (seekTime <= cumulative + dur) {
-      currentPartIndex = i;
-      currentVideoEl.src = multipartParts[i];
-      currentVideoEl.currentTime = seekTime - cumulative;
+      if (currentPartIndex !== i) {
+        // Only switch src if different part
+        currentPartIndex = i;
+        currentVideoEl.src = multipartParts[i];
+        currentVideoEl.onloadedmetadata = () => {
+          currentVideoEl.currentTime = seekTime - cumulative;
+          currentVideoEl.play();
+        };
+      } else {
+        // Same part, just seek
+        currentVideoEl.currentTime = seekTime - cumulative;
+      }
       currentVideoEl.play();
       break;
     }
