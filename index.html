@@ -599,6 +599,11 @@ let soundEnabled = false; // ✅ sound OFF by default
 let currentVideoEl = null; // ✅ tracks active video element
 let videoOnlyMode = false; // 🎥 video-only toggle
 let globalVolume = 0.5; // initial volume 50%
+let multipartParts = [];    // ✅ array of URLs for current video
+let currentPartIndex = 0;   // ✅ index of the part currently playing
+let totalDuration = 0;      // ✅ sum of durations of all parts
+let partDurations = [];     // ✅ durations of each part
+
 
 
 
@@ -653,50 +658,55 @@ function displayUrl(urls, folder, pushHist = true) {
 
   const wrapper = document.querySelector(".image-wrapper");
 
-  // Remove old media (img or video)
+  // Remove old media
   const oldMedia = wrapper.querySelector("img, video");
   if (oldMedia) oldMedia.remove();
 
+  // Wrap single URL into array
+  multipartParts = Array.isArray(urls) ? urls : [urls];
+  currentPartIndex = 0;
+  partDurations = [];
+  totalDuration = 0;
+
   let media;
-  let partIndex = 0;
-  let isMultipart = Array.isArray(urls) && urls.length > 1;
-  let currentParts = isMultipart ? urls : [urls]; // wrap single url as array
+  if (/\.(mp4|webm|mov)$/i.test(multipartParts[0])) {
+    media = document.createElement("video");
+    media.src = multipartParts[currentPartIndex];
+    media.autoplay = true;
+    media.loop = false; // manual loop for multipart
+    media.muted = !soundEnabled;
+    media.volume = globalVolume;
+    media.playsInline = true;
+    media.style.maxWidth = "100%";
+    media.style.maxHeight = "78vh";
+    media.style.borderRadius = "16px";
 
-  function createVideo(src) {
-    const vid = document.createElement("video");
-    vid.src = src;
-    vid.autoplay = true;
-    vid.loop = false; // ✅ we handle looping manually for multipart
-    vid.muted = !soundEnabled;
-    vid.volume = globalVolume;
-    vid.playsInline = true;
-    vid.style.maxWidth = "100%";
-    vid.style.maxHeight = "78vh";
-    vid.style.borderRadius = "16px";
-
-    // 🔁 When video ends, advance to next part
-    vid.onended = () => {
-      if (isMultipart) {
-        partIndex = (partIndex + 1) % currentParts.length;
-        vid.src = currentParts[partIndex];
-        vid.play();
-      } else {
-        vid.play(); // loop single video
-      }
-    };
-
-    return vid;
-  }
-
-  if (/\.(mp4|webm|mov)$/i.test(currentParts[0])) {
-    media = createVideo(currentParts[partIndex]);
     currentVideoEl = media;
     videoProgressContainer.style.display = "block";
     updateSoundIcon?.();
+
+    // Load metadata to get duration
+    media.onloadedmetadata = () => {
+      partDurations[currentPartIndex] = media.duration;
+      totalDuration = partDurations.reduce((a,b) => a+b, 0);
+    };
+
+    // When a part ends, move to next
+    media.onended = () => {
+      currentPartIndex = (currentPartIndex + 1) % multipartParts.length;
+      media.src = multipartParts[currentPartIndex];
+      media.play();
+
+      // After loading metadata, store duration
+      media.onloadedmetadata = () => {
+        partDurations[currentPartIndex] = media.duration;
+        totalDuration = partDurations.reduce((a,b) => a+b, 0);
+      };
+    };
   } else {
-    // still an image or gif
+    // Image or GIF
     media = document.createElement("img");
-    media.src = currentParts[0];
+    media.src = multipartParts[0];
     media.style.maxWidth = "100%";
     media.style.maxHeight = "78vh";
     media.style.borderRadius = "16px";
@@ -709,9 +719,7 @@ function displayUrl(urls, folder, pushHist = true) {
 
   labelEl.textContent = folder || "";
 
-  // Track the current media (for save/history)
-  currentMediaUrl = isMultipart ? currentParts[0] : currentParts[0];
-
+  currentMediaUrl = multipartParts[0];
   saveBtn.classList.toggle("saved", !!saved.find(s => s.url === currentMediaUrl));
 
   if (pushHist && (!history.length || history[history.length - 1] !== currentMediaUrl)) {
@@ -719,6 +727,7 @@ function displayUrl(urls, folder, pushHist = true) {
     historyPos = history.length - 1;
   }
 }
+
 
 
 
@@ -1278,21 +1287,44 @@ window.addEventListener("keydown", e => {
 
 function updateProgress() {
   if (currentVideoEl && !currentVideoEl.paused) {
-    const percent = (currentVideoEl.currentTime / currentVideoEl.duration) * 100;
+    let elapsed = 0;
+    // sum durations of previous parts
+    for (let i = 0; i < currentPartIndex; i++) {
+      elapsed += partDurations[i] || 0;
+    }
+    // add current part's currentTime
+    elapsed += currentVideoEl.currentTime;
+
+    const percent = totalDuration ? (elapsed / totalDuration) * 100 : 0;
     videoProgress.style.width = percent + "%";
   }
   requestAnimationFrame(updateProgress);
 }
 
+
 // Click-to-seek functionality
 videoProgressContainer.addEventListener("click", e => {
-  if (!currentVideoEl) return;
+  if (!currentVideoEl || !totalDuration) return;
   const rect = videoProgressContainer.getBoundingClientRect();
   const clickX = e.clientX - rect.left;
   const width = rect.width;
-  const newTime = (clickX / width) * currentVideoEl.duration;
-  currentVideoEl.currentTime = newTime;
+  const seekTime = (clickX / width) * totalDuration;
+
+  // Find which part corresponds to seekTime
+  let cumulative = 0;
+  for (let i = 0; i < multipartParts.length; i++) {
+    const dur = partDurations[i] || 0;
+    if (seekTime <= cumulative + dur) {
+      currentPartIndex = i;
+      currentVideoEl.src = multipartParts[i];
+      currentVideoEl.currentTime = seekTime - cumulative;
+      currentVideoEl.play();
+      break;
+    }
+    cumulative += dur;
+  }
 });
+
 
 requestAnimationFrame(updateProgress);
 
