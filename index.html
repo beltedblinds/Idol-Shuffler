@@ -708,11 +708,11 @@ async function displayUrl(urls, folder, pushHist = true) {
     updateSoundIcon?.();
 
     // When a part ends, move to next
-    currentVideoEl.onended = () => {
-      const nextIndex = (currentPartIndex + 1) % multipartParts.length;
-      swapToNextPart(nextIndex, 0);
+    media.onended = () => {
+      currentPartIndex = (currentPartIndex + 1) % multipartParts.length;
+      media.src = multipartParts[currentPartIndex];
+      media.play();
     };
-
 
   } else {
     // Image or GIF
@@ -1296,51 +1296,6 @@ window.addEventListener("keydown", e => {
   }
 });
 
-function swapToNextPart(nextPartIndex, seekTime = 0) {
-  if (!multipartParts[nextPartIndex]) return;
-
-  const wrapper = document.querySelector(".image-wrapper");
-
-  // Create hidden temp video to preload
-  const tempVid = document.createElement("video");
-  tempVid.src = multipartParts[nextPartIndex];
-  tempVid.preload = "auto";
-  tempVid.muted = !soundEnabled;
-  tempVid.volume = globalVolume;
-  tempVid.playsInline = true;
-  tempVid.style.maxWidth = "100%";
-  tempVid.style.maxHeight = "78vh";
-  tempVid.style.borderRadius = "16px";
-  tempVid.style.position = "absolute"; // overlay, hidden
-  tempVid.style.top = "0";
-  tempVid.style.left = "0";
-  tempVid.style.opacity = "0";
-  
-  wrapper.appendChild(tempVid);
-
-  tempVid.onloadedmetadata = () => {
-    // Once loaded, fade in the new video
-    tempVid.currentTime = seekTime;
-    tempVid.autoplay = true;
-    tempVid.style.transition = "opacity 0.2s ease-in-out";
-    tempVid.style.opacity = "1";
-
-    // Fade out old video
-    if (currentVideoEl) {
-      currentVideoEl.style.transition = "opacity 0.2s ease-in-out";
-      currentVideoEl.style.opacity = "0";
-      setTimeout(() => {
-        if (currentVideoEl) currentVideoEl.remove();
-      }, 250); // remove old after fade
-    }
-
-    // Update tracking
-    currentVideoEl = tempVid;
-    currentPartIndex = nextPartIndex;
-  };
-}
-
-
 function updateProgress() {
   if (currentVideoEl && !currentVideoEl.paused) {
     let elapsed = 0;
@@ -1380,13 +1335,27 @@ videoProgressContainer.addEventListener("click", e => {
   const timeInPart = targetTime - accumulated;
 
   if (partIndex !== currentPartIndex) {
-    swapToNextPart(partIndex, timeInPart);
+    // Pause current video to prevent flicker
+    currentVideoEl.pause();
+
+    // Preload new part first
+    const tempVid = document.createElement("video");
+    tempVid.src = multipartParts[partIndex];
+    tempVid.preload = "auto";
+
+    tempVid.onloadedmetadata = () => {
+      // Swap src only after metadata is loaded
+      currentPartIndex = partIndex;
+      currentVideoEl.src = multipartParts[currentPartIndex];
+      currentVideoEl.currentTime = timeInPart;
+      currentVideoEl.play();
+    };
   } else {
+    // Same part, just seek
     currentVideoEl.currentTime = timeInPart;
     currentVideoEl.play();
   }
 });
-
 
 
 
