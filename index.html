@@ -1313,37 +1313,50 @@ function updateProgress() {
 }
 
 
-// Click-to-seek functionality
+// Click-to-seek functionality (flicker-free)
 videoProgressContainer.addEventListener("click", e => {
   if (!currentVideoEl || !totalDuration) return;
 
   const rect = videoProgressContainer.getBoundingClientRect();
   const clickX = e.clientX - rect.left;
   const width = rect.width;
-  const seekTime = (clickX / width) * totalDuration;
+  const targetTime = (clickX / width) * totalDuration;
 
-  // Find which part corresponds to seekTime
-  let cumulative = 0;
-  for (let i = 0; i < multipartParts.length; i++) {
-    const dur = partDurations[i] || 0;
-    if (seekTime <= cumulative + dur) {
-      // Only switch src if different part
-      if (currentPartIndex !== i) {
-        currentPartIndex = i;
-        currentVideoEl.src = multipartParts[i];
-        currentVideoEl.onloadedmetadata = () => {
-          currentVideoEl.currentTime = seekTime - cumulative;
-          currentVideoEl.play();
-        };
-      } else {
-        currentVideoEl.currentTime = seekTime - cumulative;
-      }
-      currentVideoEl.play();
+  // Determine which part and time within that part
+  let accumulated = 0;
+  let partIndex = 0;
+  for (let i = 0; i < partDurations.length; i++) {
+    if (targetTime < accumulated + partDurations[i]) {
+      partIndex = i;
       break;
     }
-    cumulative += dur;
+    accumulated += partDurations[i];
+  }
+  const timeInPart = targetTime - accumulated;
+
+  if (partIndex !== currentPartIndex) {
+    // Pause current video to prevent flicker
+    currentVideoEl.pause();
+
+    // Preload new part first
+    const tempVid = document.createElement("video");
+    tempVid.src = multipartParts[partIndex];
+    tempVid.preload = "auto";
+
+    tempVid.onloadedmetadata = () => {
+      // Swap src only after metadata is loaded
+      currentPartIndex = partIndex;
+      currentVideoEl.src = multipartParts[currentPartIndex];
+      currentVideoEl.currentTime = timeInPart;
+      currentVideoEl.play();
+    };
+  } else {
+    // Same part, just seek
+    currentVideoEl.currentTime = timeInPart;
+    currentVideoEl.play();
   }
 });
+
 
 
 
