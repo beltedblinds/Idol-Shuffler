@@ -651,9 +651,27 @@ function parseCatalogText(text) {
     .sort((a,b) => a.folder.localeCompare(b.folder));
 }
 
+// 🛠️ Preload durations for all parts of a multipart video
+async function preloadPartDurations(parts) {
+  const durations = [];
+  await Promise.all(parts.map((url, idx) => new Promise(resolve => {
+    const vid = document.createElement("video");
+    vid.src = url;
+    vid.preload = "metadata";
+    vid.onloadedmetadata = () => {
+      durations[idx] = vid.duration || 0;
+      resolve();
+    };
+    vid.onerror = () => {
+      durations[idx] = 0;
+      resolve();
+    };
+  })));
+  return durations;
+}
 
 
-function displayUrl(urls, folder, pushHist = true) {
+async function displayUrl(urls, folder, pushHist = true) {
   if (!urls) return;
 
   const wrapper = document.querySelector(".image-wrapper");
@@ -662,18 +680,22 @@ function displayUrl(urls, folder, pushHist = true) {
   const oldMedia = wrapper.querySelector("img, video");
   if (oldMedia) oldMedia.remove();
 
-  // Wrap single URL into array
   multipartParts = Array.isArray(urls) ? urls : [urls];
   currentPartIndex = 0;
   partDurations = [];
   totalDuration = 0;
 
   let media;
+
   if (/\.(mp4|webm|mov)$/i.test(multipartParts[0])) {
+    // ✅ Preload all durations before displaying
+    partDurations = await preloadPartDurations(multipartParts);
+    totalDuration = partDurations.reduce((a,b) => a+b, 0);
+
     media = document.createElement("video");
     media.src = multipartParts[currentPartIndex];
     media.autoplay = true;
-    media.loop = false; // manual loop for multipart
+    media.loop = false;
     media.muted = !soundEnabled;
     media.volume = globalVolume;
     media.playsInline = true;
@@ -685,24 +707,13 @@ function displayUrl(urls, folder, pushHist = true) {
     videoProgressContainer.style.display = "block";
     updateSoundIcon?.();
 
-    // Load metadata to get duration
-    media.onloadedmetadata = () => {
-      partDurations[currentPartIndex] = media.duration;
-      totalDuration = partDurations.reduce((a,b) => a+b, 0);
-    };
-
     // When a part ends, move to next
     media.onended = () => {
       currentPartIndex = (currentPartIndex + 1) % multipartParts.length;
       media.src = multipartParts[currentPartIndex];
       media.play();
-
-      // After loading metadata, store duration
-      media.onloadedmetadata = () => {
-        partDurations[currentPartIndex] = media.duration;
-        totalDuration = partDurations.reduce((a,b) => a+b, 0);
-      };
     };
+
   } else {
     // Image or GIF
     media = document.createElement("img");
@@ -1311,19 +1322,13 @@ videoProgressContainer.addEventListener("click", e => {
   const width = rect.width;
   const seekTime = (clickX / width) * totalDuration;
 
-  if (multipartParts.length === 1) {
-    // ✅ Single-part video: just set currentTime
-    currentVideoEl.currentTime = seekTime;
-    return;
-  }
-
-  // ✅ Multipart video: find which part corresponds to seekTime
+  // Find which part corresponds to seekTime
   let cumulative = 0;
   for (let i = 0; i < multipartParts.length; i++) {
     const dur = partDurations[i] || 0;
     if (seekTime <= cumulative + dur) {
+      // Only switch src if different part
       if (currentPartIndex !== i) {
-        // Only switch src if different part
         currentPartIndex = i;
         currentVideoEl.src = multipartParts[i];
         currentVideoEl.onloadedmetadata = () => {
@@ -1331,7 +1336,6 @@ videoProgressContainer.addEventListener("click", e => {
           currentVideoEl.play();
         };
       } else {
-        // Same part, just seek
         currentVideoEl.currentTime = seekTime - cumulative;
       }
       currentVideoEl.play();
@@ -1340,6 +1344,7 @@ videoProgressContainer.addEventListener("click", e => {
     cumulative += dur;
   }
 });
+
 
 
 requestAnimationFrame(updateProgress);
