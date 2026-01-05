@@ -630,80 +630,96 @@ function parseCatalogText(text) {
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
   return lines.map(line => {
     const parts = line.split(",").map(p => p.trim());
-    if (parts.length < 3) return null; // must have folder, raw, thumb
+    if (parts.length < 3) return null; // must have folder, raw(s), thumb
+
     const folder = parts[0];
-    const raw = parts[1];
+
+    // ✅ handle multipart videos
+    // raw parts may be separated by semicolons
+    let rawParts = parts[1].split(";").map(p => p.trim()).filter(Boolean);
+
     const thumb = parts[2];
-    const categories = parts.slice(3).map(c => c.trim()).filter(Boolean); // ✅ multiple categories
-    return { folder, raw, thumb, categories };
+    const categories = parts.slice(3).map(c => c.trim()).filter(Boolean);
+
+    return { folder, raw: rawParts, thumb, categories };
   }).filter(e => e && e.folder && e.raw && e.thumb)
     .sort((a,b) => a.folder.localeCompare(b.folder));
 }
 
 
-function displayUrl(url, folder, pushHist = true) {
-  if (!url) return;
+
+function displayUrl(urls, folder, pushHist = true) {
+  if (!urls) return;
 
   const wrapper = document.querySelector(".image-wrapper");
-  
-  /* ✅ SAFELY remove only the old media (NOT buttons) */
+
+  // Remove old media (img or video)
   const oldMedia = wrapper.querySelector("img, video");
   if (oldMedia) oldMedia.remove();
-  
-  /* ✅ Keep buttons intact (no re-append needed) */
-
-
 
   let media;
-  if (url.match(/\.(mp4|webm|mov)$/i)) {
-    media = document.createElement("video");
-    media.src = url;
-    media.autoplay = true;
-    media.loop = true;
-    media.muted = !soundEnabled; // ✅ respect sound toggle
-    media.volume = globalVolume;        // ✅ apply stored volume
-    media.playsInline = true;
-    media.style.maxWidth = "100%";
-    media.style.maxHeight = "78vh";
-    media.style.borderRadius = "16px";
-  
-    currentVideoEl = media; // ✅ track current video
-    if (typeof updateSoundIcon === "function") updateSoundIcon();
-  }  else {
+  let partIndex = 0;
+  let isMultipart = Array.isArray(urls) && urls.length > 1;
+  let currentParts = isMultipart ? urls : [urls]; // wrap single url as array
+
+  function createVideo(src) {
+    const vid = document.createElement("video");
+    vid.src = src;
+    vid.autoplay = true;
+    vid.loop = false; // ✅ we handle looping manually for multipart
+    vid.muted = !soundEnabled;
+    vid.volume = globalVolume;
+    vid.playsInline = true;
+    vid.style.maxWidth = "100%";
+    vid.style.maxHeight = "78vh";
+    vid.style.borderRadius = "16px";
+
+    // 🔁 When video ends, advance to next part
+    vid.onended = () => {
+      if (isMultipart) {
+        partIndex = (partIndex + 1) % currentParts.length;
+        vid.src = currentParts[partIndex];
+        vid.play();
+      } else {
+        vid.play(); // loop single video
+      }
+    };
+
+    return vid;
+  }
+
+  if (/\.(mp4|webm|mov)$/i.test(currentParts[0])) {
+    media = createVideo(currentParts[partIndex]);
+    currentVideoEl = media;
+    videoProgressContainer.style.display = "block";
+    updateSoundIcon?.();
+  } else {
+    // still an image or gif
     media = document.createElement("img");
-    media.src = url;
+    media.src = currentParts[0];
     media.style.maxWidth = "100%";
     media.style.maxHeight = "78vh";
     media.style.borderRadius = "16px";
     media.style.transition = "opacity 0.3s ease-in-out";
+    currentVideoEl = null;
+    videoProgressContainer.style.display = "none";
   }
 
   wrapper.appendChild(media);
 
-  // Show progress bar only for <video> elements
-  if (media.tagName.toLowerCase() === "video") {
-    currentVideoEl = media; // track only actual video
-    videoProgressContainer.style.display = "block";
-    updateSoundIcon?.(); // keep sound icon updated
-  } else {
-    currentVideoEl = null; // clear reference if not video
-    videoProgressContainer.style.display = "none";
-  }
-
-  
   labelEl.textContent = folder || "";
 
-  // 🩷 Track the current media
-  currentMediaUrl = url;
+  // Track the current media (for save/history)
+  currentMediaUrl = isMultipart ? currentParts[0] : currentParts[0];
 
-  // Update save button state
   saveBtn.classList.toggle("saved", !!saved.find(s => s.url === currentMediaUrl));
 
-  if (pushHist && (!history.length || history[history.length - 1] !== url)) {
-    history.push(url);
+  if (pushHist && (!history.length || history[history.length - 1] !== currentMediaUrl)) {
+    history.push(currentMediaUrl);
     historyPos = history.length - 1;
   }
 }
+
 
 
 function getCurrentPool() {
