@@ -631,29 +631,14 @@ function parseCatalogText(text) {
   return lines.map(line => {
     const parts = line.split(",").map(p => p.trim());
     if (parts.length < 3) return null; // must have folder, raw, thumb
-
     const folder = parts[0];
-    let rawParts = [parts[1]]; // start with the second column
-    let thumb = parts[2];
-
-    // 🧩 Handle multipart raw URLs (anything before the first valid category)
-    if (parts.length > 3) {
-      let i = 3;
-      while (i < parts.length && !parts[i].match(/^[A-Za-z0-9 ]+$/)) i++;
-      if (i > 3) {
-        rawParts.push(...parts.slice(2, i)); // include everything before category
-        thumb = parts[i - 1]; // last “raw” piece becomes thumb placeholder
-      }
-    }
-
-    const raw = rawParts.join(","); // ✅ merge back into single raw URL
-    const categories = parts.slice(parts.length - (parts.length - 3)).map(c => c.trim()).filter(Boolean);
-
+    const raw = parts[1];
+    const thumb = parts[2];
+    const categories = parts.slice(3).map(c => c.trim()).filter(Boolean); // ✅ multiple categories
     return { folder, raw, thumb, categories };
   }).filter(e => e && e.folder && e.raw && e.thumb)
-    .sort((a, b) => a.folder.localeCompare(b.folder));
+    .sort((a,b) => a.folder.localeCompare(b.folder));
 }
-
 
 
 function displayUrl(url, folder, pushHist = true) {
