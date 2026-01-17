@@ -634,6 +634,16 @@ const videoProgressContainer = document.getElementById("videoProgressContainer")
 const videoProgress = document.getElementById("videoProgress");
 
 
+function positionSaveBtn(media) {
+  if (!media) return;
+
+  const rect = media.getBoundingClientRect();
+  saveBtn.style.position = "absolute";
+  saveBtn.style.top = `${rect.top + window.scrollY + 12}px`;
+  saveBtn.style.left = `${rect.left + window.scrollX + 12}px`;
+}
+
+
 /* Parser and functions (same as before) */
 function parseCatalogText(text) {
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
@@ -735,9 +745,17 @@ async function displayUrl(urls, folder, pushHist = true) {
   wrapper.appendChild(media);
 
   labelEl.textContent = folder || "";
-
+  
   currentMediaUrl = multipartParts[0];
   saveBtn.classList.toggle("saved", !!saved.find(s => s.url === currentMediaUrl));
+  
+  // 🩷 position save button relative to media
+  if (media.tagName.toLowerCase() === "img") {
+    media.onload = () => positionSaveBtn(media);
+  } else if (media.tagName.toLowerCase() === "video") {
+    media.onloadedmetadata = () => positionSaveBtn(media);
+  }
+
 
   if (pushHist && (!history.length || history[history.length - 1] !== currentMediaUrl)) {
     history.push(currentMediaUrl);
@@ -1301,6 +1319,12 @@ window.addEventListener("keydown", e => {
     case "ArrowUp": e.preventDefault(); toggleSavedMode(); break;
   }
 });
+
+window.addEventListener("resize", () => {
+  const media = document.querySelector(".image-wrapper img, .image-wrapper video");
+  if (media) positionSaveBtn(media);
+});
+
 
 function updateProgress() {
   if (currentVideoEl && !currentVideoEl.paused) {
