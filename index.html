@@ -191,19 +191,10 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;          /* ✅ clips oversized media */
-  }
-
-  /* Holds the media tightly */
-  .media-frame {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     border-radius: 16px;
-    background: #111;
     box-shadow: 0 0 20px rgba(255, 123, 203, 0.2);
-    overflow: hidden;
+    background: #111;
   }
-
 
 
   #idolImage {
@@ -573,8 +564,7 @@
     <input type="range" id="volumeSlider" min="0" max="100" value="50">
   </div>
 
-  <div class="media-frame"></div>
-
+  <img id="idolImage" src="" alt="Idol" />
   <div id="videoProgressContainer">
     <div id="videoProgress"></div>
   </div>
@@ -686,7 +676,7 @@ async function preloadPartDurations(parts) {
 async function displayUrl(urls, folder, pushHist = true) {
   if (!urls) return;
 
-  const wrapper = document.querySelector(".media-frame");
+  const wrapper = document.querySelector(".image-wrapper");
 
   // Remove old media
   const oldMedia = wrapper.querySelector("img, video");
