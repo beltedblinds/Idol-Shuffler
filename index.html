@@ -196,6 +196,16 @@
     background: #111;
   }
 
+  /* 🩷 Inner wrapper to hug media without affecting image-wrapper size */
+  .media-inner-wrapper {
+    display: inline-block;        /* shrink to the size of the media */
+    position: relative;
+    border-radius: 16px;
+    box-shadow: 0 0 20px rgba(255,123,203,0.2);
+    transition: all 0.3s ease;
+  }
+
+
 
   #idolImage {
     max-width: 100%;
@@ -678,22 +688,13 @@ async function displayUrl(urls, folder, pushHist = true) {
 
   const wrapper = document.querySelector(".image-wrapper");
 
-  // Remove old media
-  const oldMedia = wrapper.querySelector("img, video");
-  if (oldMedia) oldMedia.remove();
-
-  multipartParts = Array.isArray(urls) ? urls : [urls];
-  currentPartIndex = 0;
-  partDurations = [];
-  totalDuration = 0;
-
+  // Remove old media wrapper if exists
+  const oldMediaWrap = wrapper.querySelector(".media-inner-wrapper");
+  if (oldMediaWrap) oldMediaWrap.remove();
+  
+  // Create media element
   let media;
-
   if (/\.(mp4|webm|mov)$/i.test(multipartParts[0])) {
-    // ✅ Preload all durations before displaying
-    partDurations = await preloadPartDurations(multipartParts);
-    totalDuration = partDurations.reduce((a,b) => a+b, 0);
-
     media = document.createElement("video");
     media.src = multipartParts[currentPartIndex];
     media.autoplay = true;
@@ -701,36 +702,34 @@ async function displayUrl(urls, folder, pushHist = true) {
     media.muted = !soundEnabled;
     media.volume = globalVolume;
     media.playsInline = true;
-    media.style.width = "100%";
-    media.style.height = "100%";
-    media.style.objectFit = "contain";
-    media.style.borderRadius = "16px";
-
-    currentVideoEl = media;
-    videoProgressContainer.style.display = "block";
-    updateSoundIcon?.();
-
-    // When a part ends, move to next
-    media.onended = () => {
-      currentPartIndex = (currentPartIndex + 1) % multipartParts.length;
-      media.src = multipartParts[currentPartIndex];
-      media.play();
-    };
-
   } else {
-    // Image or GIF
     media = document.createElement("img");
     media.src = multipartParts[0];
-    media.style.width = "100%";
-    media.style.height = "100%";
-    media.style.objectFit = "contain";
-    media.style.borderRadius = "16px";
     media.style.transition = "opacity 0.3s ease-in-out";
-    currentVideoEl = null;
-    videoProgressContainer.style.display = "none";
   }
+  
+  // Set media styles
+  media.style.display = "block";      
+  media.style.maxWidth = "100%";
+  media.style.maxHeight = "78vh";
+  media.style.objectFit = "contain";
+  media.style.borderRadius = "16px";
+  
+  // ✅ Wrap media in a new inner wrapper that hugs it
+  const mediaWrap = document.createElement("div");
+  mediaWrap.className = "media-inner-wrapper";
+  mediaWrap.appendChild(media);
+  
+  wrapper.appendChild(mediaWrap);
+  
+  // Update global video reference
+  currentVideoEl = media.tagName === "VIDEO" ? media : null;
 
-  wrapper.appendChild(media);
+  wrapper.appendChild(mediaWrap);
+  
+  // Update global currentVideoEl
+  currentVideoEl = media.tagName === "VIDEO" ? media : null;
+
 
   labelEl.textContent = folder || "";
 
