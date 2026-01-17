@@ -110,16 +110,19 @@
   }
 
   #videoProgressContainer {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 6px;
-  background: rgba(255, 123, 203, 0.2); /* light pink */
-  cursor: pointer;
-  border-radius: 3px;
-  z-index: 3;
+    position: absolute;
+    bottom: 0;
+    height: 6px;
+    background: rgba(255, 123, 203, 0.2); /* light pink */
+    cursor: pointer;
+    border-radius: 3px;
+    z-index: 3;
+  
+    /* 🚀 width and left will be set dynamically */
+    width: auto;
+    left: 0;
   }
+
   
   #videoProgress {
     width: 0%;
@@ -734,6 +737,14 @@ async function displayUrl(urls, folder, pushHist = true) {
 
   wrapper.appendChild(media);
 
+  // Resize progress bar to match media
+  if (media.tagName.toLowerCase() === "img") {
+    media.onload = () => resizeProgressBar();
+  } else if (media.tagName.toLowerCase() === "video") {
+    media.onloadedmetadata = () => resizeProgressBar();
+  }
+
+
   labelEl.textContent = folder || "";
 
   currentMediaUrl = multipartParts[0];
@@ -1302,6 +1313,9 @@ window.addEventListener("keydown", e => {
   }
 });
 
+window.addEventListener("resize", resizeProgressBar);
+
+
 function updateProgress() {
   if (currentVideoEl && !currentVideoEl.paused) {
     let elapsed = 0;
@@ -1362,6 +1376,22 @@ videoProgressContainer.addEventListener("click", e => {
     currentVideoEl.play();
   }
 });
+
+function resizeProgressBar() {
+  const wrapper = document.querySelector(".image-wrapper");
+  const media = wrapper.querySelector("img, video");
+  const progressContainer = document.getElementById("videoProgressContainer");
+  if (!media || !progressContainer) return;
+
+  // Get wrapper and media dimensions
+  const wrapperRect = wrapper.getBoundingClientRect();
+  const mediaRect = media.getBoundingClientRect();
+
+  // Set progress container width and horizontal offset
+  progressContainer.style.width = `${mediaRect.width}px`;
+  progressContainer.style.left = `${mediaRect.left - wrapperRect.left}px`;
+}
+
 
 
 
