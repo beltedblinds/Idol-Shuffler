@@ -734,14 +734,6 @@ async function displayUrl(urls, folder, pushHist = true) {
 
   wrapper.appendChild(media);
 
-  // Resize progress bar when media is ready
-  if (media.tagName.toLowerCase() === "img") {
-    media.onload = () => resizeVideoProgress();
-  } else if (media.tagName.toLowerCase() === "video") {
-    media.onloadedmetadata = () => resizeVideoProgress();
-  }
-
-
   labelEl.textContent = folder || "";
 
   currentMediaUrl = multipartParts[0];
@@ -1310,9 +1302,6 @@ window.addEventListener("keydown", e => {
   }
 });
 
-window.addEventListener("resize", resizeVideoProgress);
-
-
 function updateProgress() {
   if (currentVideoEl && !currentVideoEl.paused) {
     let elapsed = 0;
@@ -1373,22 +1362,6 @@ videoProgressContainer.addEventListener("click", e => {
     currentVideoEl.play();
   }
 });
-
-function resizeVideoProgress() {
-  if (!currentVideoEl) return;
-
-  const wrapper = document.querySelector(".image-wrapper");
-  const rectWrapper = wrapper.getBoundingClientRect();
-  const rectMedia = currentVideoEl.getBoundingClientRect();
-
-  // Width of media relative to wrapper
-  const width = rectMedia.width;
-  const left = rectMedia.left - rectWrapper.left;
-
-  videoProgressContainer.style.width = width + "px";
-  videoProgressContainer.style.left = left + "px";
-}
-
 
 
 
