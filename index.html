@@ -185,25 +185,24 @@
 
   .image-wrapper {
     position: relative;
-    display: inline-block;      /* ✅ shrink-to-fit media */
+    width: 92vw;
+    height: calc(100vh - 260px); /* ✅ viewer-only viewport */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;          /* ✅ clips oversized media */
     border-radius: 16px;
-    box-shadow: 0 0 20px rgba(255, 123, 203, 0.2); /* pink border effect */
-    overflow: visible;          /* ✅ allow buttons to sit outside if needed */
-    background: transparent;    /* remove premade dark frame */
-    margin-bottom: 20px;        /* spacing from controls */
+    box-shadow: 0 0 20px rgba(255, 123, 203, 0.2);
+    background: #111;
   }
 
 
-
-  #idolImage, .image-wrapper video {
-    display: block;
-    max-width: 92vw;
+  #idolImage {
+    max-width: 100%;
     max-height: 78vh;
-    width: auto;
-    height: auto;
     border-radius: 16px;
+    transition: opacity 0.3s ease-in-out;
   }
-
 
   #saveBtn {
     position: absolute;
@@ -691,6 +690,7 @@ async function displayUrl(urls, folder, pushHist = true) {
   let media;
 
   if (/\.(mp4|webm|mov)$/i.test(multipartParts[0])) {
+    // ✅ Preload all durations before displaying
     partDurations = await preloadPartDurations(multipartParts);
     totalDuration = partDurations.reduce((a,b) => a+b, 0);
 
@@ -701,15 +701,16 @@ async function displayUrl(urls, folder, pushHist = true) {
     media.muted = !soundEnabled;
     media.volume = globalVolume;
     media.playsInline = true;
+    media.style.width = "100%";
+    media.style.height = "100%";
+    media.style.objectFit = "contain";
     media.style.borderRadius = "16px";
-    media.style.maxWidth = "92vw";
-    media.style.maxHeight = "78vh";
-    media.style.width = "auto";
-    media.style.height = "auto";
 
     currentVideoEl = media;
     videoProgressContainer.style.display = "block";
+    updateSoundIcon?.();
 
+    // When a part ends, move to next
     media.onended = () => {
       currentPartIndex = (currentPartIndex + 1) % multipartParts.length;
       media.src = multipartParts[currentPartIndex];
@@ -717,27 +718,22 @@ async function displayUrl(urls, folder, pushHist = true) {
     };
 
   } else {
+    // Image or GIF
     media = document.createElement("img");
     media.src = multipartParts[0];
+    media.style.width = "100%";
+    media.style.height = "100%";
+    media.style.objectFit = "contain";
     media.style.borderRadius = "16px";
-    media.style.maxWidth = "92vw";
-    media.style.maxHeight = "78vh";
-    media.style.width = "auto";
-    media.style.height = "auto";
-
+    media.style.transition = "opacity 0.3s ease-in-out";
     currentVideoEl = null;
     videoProgressContainer.style.display = "none";
   }
 
   wrapper.appendChild(media);
 
-  // Dynamically resize wrapper to match media
-  media.onload = media.onloadedmetadata = () => {
-    wrapper.style.width = media.offsetWidth + "px";
-    wrapper.style.height = media.offsetHeight + "px";
-  };
-
   labelEl.textContent = folder || "";
+
   currentMediaUrl = multipartParts[0];
   saveBtn.classList.toggle("saved", !!saved.find(s => s.url === currentMediaUrl));
 
