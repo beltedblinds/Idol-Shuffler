@@ -734,6 +734,26 @@ async function displayUrl(urls, folder, pushHist = true) {
 
   wrapper.appendChild(media);
 
+  function positionButtonsHugMedia(media) {
+    const wrapper = document.querySelector(".image-wrapper");
+    const rect = media.getBoundingClientRect();
+    const wrapperRect = wrapper.getBoundingClientRect();
+  
+    const offsetTop = rect.top - wrapperRect.top;
+    const offsetLeft = rect.left - wrapperRect.left;
+  
+    saveBtn.style.top = `${offsetTop + 12}px`;
+    saveBtn.style.left = `${offsetLeft + 12}px`;
+  
+    soundContainer.style.top = `${offsetTop + 12}px`;
+    soundContainer.style.left = `${offsetLeft + rect.width - soundContainer.offsetWidth - 12}px`;
+  }
+
+  // Reposition buttons dynamically
+  setTimeout(() => positionButtonsHugMedia(media), 50); // small timeout to allow layout
+
+
+
   labelEl.textContent = folder || "";
 
   currentMediaUrl = multipartParts[0];
