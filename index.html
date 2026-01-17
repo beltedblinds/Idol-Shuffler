@@ -206,6 +206,14 @@
     transition: opacity 0.3s ease-in-out;
   }
 
+  /* Make media itself a positioning context for save button */
+  .image-wrapper img,
+  .image-wrapper video {
+      position: relative; /* ✅ allows save button to position relative to media */
+      display: block;
+  }
+
+
   #saveBtn {
     position: absolute;
     top: 12px;
@@ -733,6 +741,11 @@ async function displayUrl(urls, folder, pushHist = true) {
   }
 
   wrapper.appendChild(media);
+
+  // ✅ Move save button to hug the media
+  media.parentNode.appendChild(saveBtn);
+  media.parentNode.appendChild(document.getElementById("soundContainer"));
+
 
   labelEl.textContent = folder || "";
 
