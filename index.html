@@ -198,24 +198,6 @@
     background: transparent;
   }
 
-  /* Media container wraps each image/video for positioning save button */
-  .media-container {
-    position: relative; /* ✅ makes save button relative to this container */
-    display: inline-block; /* hug the media's natural size */
-  }
-  
-  /* make media fill the container as before */
-  .media-container img,
-  .media-container video {
-    display: block;
-    max-width: 92vw;
-    max-height: 78vh;
-    width: auto;
-    height: auto;
-    border-radius: 16px;
-  }
-
-
 
   #idolImage {
     max-width: 100%;
@@ -750,20 +732,7 @@ async function displayUrl(urls, folder, pushHist = true) {
     videoProgressContainer.style.display = "none";
   }
 
-  // Create a container that hugs the media
-  const mediaContainer = document.createElement("div");
-  mediaContainer.className = "media-container";
-  
-  // Append the media to the container
-  mediaContainer.appendChild(media);
-  
-  // Move save button & sound container inside the container
-  mediaContainer.appendChild(saveBtn);
-  mediaContainer.appendChild(document.getElementById("soundContainer"));
-  
-  // Append the container to the wrapper
-  wrapper.appendChild(mediaContainer);
-
+  wrapper.appendChild(media);
 
   labelEl.textContent = folder || "";
 
