@@ -633,31 +633,6 @@ const soundBtn = document.getElementById("soundBtn");
 const videoProgressContainer = document.getElementById("videoProgressContainer");
 const videoProgress = document.getElementById("videoProgress");
 
-// 🛠️ Resize progress bar to match actual media edges
-function resizeVideoProgress() {
-  const wrapper = document.querySelector(".image-wrapper");
-  if (!wrapper) return;
-
-  // Use current video if exists, otherwise fallback to image
-  const media = currentVideoEl || wrapper.querySelector("img");
-  if (!media) return;
-
-  const wrapperRect = wrapper.getBoundingClientRect();
-  const mediaRect = media.getBoundingClientRect();
-
-  // left/right edges relative to wrapper
-  const mediaLeft = mediaRect.left - wrapperRect.left;
-  const mediaRight = mediaRect.right - wrapperRect.left;
-  const width = mediaRight - mediaLeft;
-
-  videoProgressContainer.style.left = mediaLeft + "px";
-  videoProgressContainer.style.width = width + "px";
-
-  // Hide progress if media is not a video
-  videoProgressContainer.style.display = media.tagName.toLowerCase() === "video" ? "block" : "none";
-}
-
-
 
 /* Parser and functions (same as before) */
 function parseCatalogText(text) {
@@ -758,10 +733,6 @@ async function displayUrl(urls, folder, pushHist = true) {
   }
 
   wrapper.appendChild(media);
-
-  // 🔹 Add this line at the end of displayUrl() just before exiting the function:
-  media.onload = media.onloadedmetadata = resizeVideoProgress;
-
 
   labelEl.textContent = folder || "";
 
@@ -1330,9 +1301,6 @@ window.addEventListener("keydown", e => {
     case "ArrowUp": e.preventDefault(); toggleSavedMode(); break;
   }
 });
-
-window.addEventListener("resize", resizeVideoProgress);
-
 
 function updateProgress() {
   if (currentVideoEl && !currentVideoEl.paused) {
