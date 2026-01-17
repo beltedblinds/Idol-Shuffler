@@ -191,10 +191,10 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;          /* ✅ clips oversized media */
-    border-radius: 16px;
-    box-shadow: 0 0 20px rgba(255, 123, 203, 0.2);
     background: #111;
+    /* remove border-radius & box-shadow from wrapper */
   }
+
 
 
   #idolImage {
@@ -203,6 +203,20 @@
     border-radius: 16px;
     transition: opacity 0.3s ease-in-out;
   }
+
+  /* 🌸 Border hugs actual media (image or video) */
+  .image-wrapper img,
+  .image-wrapper video {
+      border-radius: 16px;
+      box-shadow: 0 0 20px rgba(255, 123, 203, 0.2);
+      display: block;        /* remove inline spacing */
+      max-width: 100%;
+      max-height: 78vh;      /* same as before */
+      object-fit: contain;
+      position: relative;    /* ensures buttons sit on top */
+      z-index: 1;
+  }
+
 
   #saveBtn {
     position: absolute;
