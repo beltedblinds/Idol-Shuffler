@@ -22,7 +22,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: 100vh;
+    height: 100vh;           /* ✅ lock page height */
+    overflow: hidden;       /* ✅ prevent page scrollbar */
     padding: 20px;
     box-sizing: border-box;
   }
@@ -184,16 +185,17 @@
 
   .image-wrapper {
     position: relative;
-    max-width: 92vw;
-    max-height: 78vh;
+    width: 92vw;
+    height: calc(100vh - 260px); /* ✅ viewer-only viewport */
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    overflow: hidden;          /* ✅ clips oversized media */
     border-radius: 16px;
     box-shadow: 0 0 20px rgba(255, 123, 203, 0.2);
     background: #111;
   }
+
 
   #idolImage {
     max-width: 100%;
@@ -699,8 +701,9 @@ async function displayUrl(urls, folder, pushHist = true) {
     media.muted = !soundEnabled;
     media.volume = globalVolume;
     media.playsInline = true;
-    media.style.maxWidth = "100%";
-    media.style.maxHeight = "78vh";
+    media.style.width = "100%";
+    media.style.height = "100%";
+    media.style.objectFit = "contain";
     media.style.borderRadius = "16px";
 
     currentVideoEl = media;
@@ -718,8 +721,9 @@ async function displayUrl(urls, folder, pushHist = true) {
     // Image or GIF
     media = document.createElement("img");
     media.src = multipartParts[0];
-    media.style.maxWidth = "100%";
-    media.style.maxHeight = "78vh";
+    media.style.width = "100%";
+    media.style.height = "100%";
+    media.style.objectFit = "contain";
     media.style.borderRadius = "16px";
     media.style.transition = "opacity 0.3s ease-in-out";
     currentVideoEl = null;
