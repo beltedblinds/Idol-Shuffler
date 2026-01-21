@@ -707,7 +707,7 @@ async function displayUrl(urls, folder, pushHist = true) {
 
      // ✅ Start button positioning only after metadata loaded
     media.onloadedmetadata = () => {
-      requestAnimationFrame(positionButtons);
+      requestAnimationFrame(positionOverlayElements);
     };
 
     currentVideoEl = media;
@@ -737,7 +737,7 @@ async function displayUrl(urls, folder, pushHist = true) {
   wrapper.appendChild(media);
 
   media.onload = () => {
-    requestAnimationFrame(positionButtons);
+    requestAnimationFrame(positionOverlayElements);
   };
 
   labelEl.textContent = folder || "";
@@ -1327,7 +1327,7 @@ function updateProgress() {
 }
 
 // ✅ Track media edges and position buttons
-function positionButtons() {
+function positionOverlayElements() {
   const wrapper = document.querySelector(".image-wrapper");
   const media = wrapper.querySelector("img, video");
   if (!media) return;
@@ -1335,16 +1335,13 @@ function positionButtons() {
   let mediaWidth, mediaHeight;
 
   if (media.tagName.toLowerCase() === "video") {
-    // ✅ Use videoWidth/videoHeight if available
     if (!media.videoWidth || !media.videoHeight) {
-      // metadata not loaded yet, try again next frame
-      requestAnimationFrame(positionButtons);
+      requestAnimationFrame(positionOverlayElements); // retry next frame
       return;
     }
     mediaWidth = media.videoWidth;
     mediaHeight = media.videoHeight;
   } else {
-    // image
     mediaWidth = media.naturalWidth;
     mediaHeight = media.naturalHeight;
   }
@@ -1358,11 +1355,9 @@ function positionButtons() {
   let displayedWidth, displayedHeight;
 
   if (mediaAspect > wrapperAspect) {
-    // letterbox vertically
     displayedWidth = wrapperWidth;
     displayedHeight = wrapperWidth / mediaAspect;
   } else {
-    // pillarbox horizontally
     displayedHeight = wrapperHeight;
     displayedWidth = wrapperHeight * mediaAspect;
   }
@@ -1370,15 +1365,20 @@ function positionButtons() {
   const offsetX = (wrapperWidth - displayedWidth) / 2;
   const offsetY = (wrapperHeight - displayedHeight) / 2;
 
-  // ✅ position buttons relative to media edges
+  // ✅ Position Save button (top-left of media)
   saveBtn.style.left = `${offsetX + 8}px`;
   saveBtn.style.top = `${offsetY + 8}px`;
 
+  // ✅ Position Sound button (top-right of media)
   soundContainer.style.left = `${offsetX + displayedWidth - soundContainer.offsetWidth - 8}px`;
   soundContainer.style.top = `${offsetY + 8}px`;
 
-  requestAnimationFrame(positionButtons);
+  // ✅ Position Video Progress bar (bottom of media)
+  videoProgressContainer.style.left = `${offsetX}px`;
+  videoProgressContainer.style.top = `${offsetY + displayedHeight - videoProgressContainer.offsetHeight}px`;
+  videoProgressContainer.style.width = `${displayedWidth}px`;
 }
+
 
 
 
@@ -1430,7 +1430,7 @@ videoProgressContainer.addEventListener("click", e => {
 
 
 requestAnimationFrame(updateProgress);
-requestAnimationFrame(positionButtons);
+requestAnimationFrame(positionOverlayElements);
 
 
 loadSaved();
