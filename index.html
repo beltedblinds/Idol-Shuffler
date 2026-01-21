@@ -207,6 +207,7 @@
   }
 
   #saveBtn {
+    position: absolute;
     z-index: 2;
     background: rgba(0, 0, 0, 0.55);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -233,6 +234,7 @@
   }
 
   #soundContainer {
+  position: absolute;
   display: flex;
   align-items: center;
   gap: 6px; /* gap is optional now */
@@ -1320,20 +1322,21 @@ function positionButtons() {
   const media = document.querySelector(".image-wrapper img, .image-wrapper video");
   if (!media) return;
 
-  const rect = media.getBoundingClientRect();
-  const wrapperRect = document.querySelector(".image-wrapper").getBoundingClientRect();
+  const mediaRect = media.getBoundingClientRect();
+  const wrapper = document.querySelector(".image-wrapper");
+  const wrapperRect = wrapper.getBoundingClientRect();
 
-  // Media edges relative to wrapper
-  const left = rect.left - wrapperRect.left;
-  const right = rect.right - wrapperRect.left;
-  const top = rect.top - wrapperRect.top;
+  // ✅ Media edges relative to wrapper
+  const left = mediaRect.left - wrapperRect.left;
+  const right = mediaRect.right - wrapperRect.left;
+  const top = mediaRect.top - wrapperRect.top;
 
-  // Adjust buttons
-  saveBtn.style.left = `${left + 12}px`; // 12px padding from media edge
-  saveBtn.style.top = `${top + 12}px`;
+  // Position buttons inside wrapper
+  saveBtn.style.left = `${left + 8}px`; // 8px padding from media
+  saveBtn.style.top = `${top + 8}px`;
 
-  soundContainer.style.left = `${right - soundContainer.offsetWidth - 12}px`; // 12px padding from media edge
-  soundContainer.style.top = `${top + 12}px`;
+  soundContainer.style.left = `${right - soundContainer.offsetWidth - 8}px`;
+  soundContainer.style.top = `${top + 8}px`;
 
   requestAnimationFrame(positionButtons);
 }
