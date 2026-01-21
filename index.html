@@ -531,10 +531,9 @@
   position: relative;       /* 🔑 anchor for buttons */
   max-width: 100%;
   max-height: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-block;    /* ✅ shrink-wrap to media size */
 }
+
 
   
 </style>
@@ -720,10 +719,13 @@ async function displayUrl(urls, folder, pushHist = true) {
     media.muted = !soundEnabled;
     media.volume = globalVolume;
     media.playsInline = true;
-    media.style.width = "100%";
-    media.style.height = "100%";
+    media.style.maxWidth = "100%";
+    media.style.maxHeight = "100%";
+    media.style.width = "auto";
+    media.style.height = "auto";
     media.style.objectFit = "contain";
     media.style.borderRadius = "16px";
+
 
     currentVideoEl = media;
     videoProgressContainer.style.display = "block";
@@ -740,8 +742,10 @@ async function displayUrl(urls, folder, pushHist = true) {
     // Image or GIF
     media = document.createElement("img");
     media.src = multipartParts[0];
-    media.style.width = "100%";
-    media.style.height = "100%";
+    media.style.maxWidth = "100%";
+    media.style.maxHeight = "100%";
+    media.style.width = "auto";
+    media.style.height = "auto";
     media.style.objectFit = "contain";
     media.style.borderRadius = "16px";
     media.style.transition = "opacity 0.3s ease-in-out";
