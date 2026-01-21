@@ -1376,19 +1376,30 @@ function positionOverlayElements() {
   const offsetX = (wrapperWidth - displayedWidth) / 2;
   const offsetY = (wrapperHeight - displayedHeight) / 2;
 
-  // ✅ Position Save button (top-left of media)
-  saveBtn.style.left = `${offsetX + 8}px`;
-  saveBtn.style.top = `${offsetY + 8}px`;
+  // ✅ Fixed sizes in pixels (won't scale with zoom)
+  const BUTTON_SIZE = 40;        // save & sound buttons
+  const BUTTON_MARGIN = 8;       // distance from media edges
+  const PROGRESS_HEIGHT = 6;     // thickness of video progress bar
 
-  // ✅ Position Sound button (top-right of media)
-  soundContainer.style.left = `${offsetX + displayedWidth - soundContainer.offsetWidth - 8}px`;
-  soundContainer.style.top = `${offsetY + 8}px`;
+  // Position Save button (top-left of media)
+  saveBtn.style.width = `${BUTTON_SIZE}px`;
+  saveBtn.style.height = `${BUTTON_SIZE}px`;
+  saveBtn.style.left = `${offsetX + BUTTON_MARGIN}px`;
+  saveBtn.style.top = `${offsetY + BUTTON_MARGIN}px`;
 
-  // ✅ Position Video Progress bar (bottom of media)
+  // Position Sound button (top-right of media)
+  soundContainer.style.width = `${BUTTON_SIZE}px`;
+  soundContainer.style.height = `${BUTTON_SIZE}px`;
+  soundContainer.style.left = `${offsetX + displayedWidth - BUTTON_SIZE - BUTTON_MARGIN}px`;
+  soundContainer.style.top = `${offsetY + BUTTON_MARGIN}px`;
+
+  // Position Video Progress bar (bottom of media)
+  videoProgressContainer.style.height = `${PROGRESS_HEIGHT}px`;
   videoProgressContainer.style.left = `${offsetX}px`;
-  videoProgressContainer.style.top = `${offsetY + displayedHeight - videoProgressContainer.offsetHeight}px`;
+  videoProgressContainer.style.top = `${offsetY + displayedHeight - PROGRESS_HEIGHT}px`;
   videoProgressContainer.style.width = `${displayedWidth}px`;
 }
+
 
 
 
