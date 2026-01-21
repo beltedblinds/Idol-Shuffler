@@ -1310,21 +1310,32 @@ window.addEventListener("keydown", e => {
   }
 });
 
+// Reposition overlay elements when the window changes size (including zoom)
+window.addEventListener("resize", () => {
+  requestAnimationFrame(positionOverlayElements);
+});
+window.addEventListener("orientationchange", () => {
+  requestAnimationFrame(positionOverlayElements);
+});
+
+
 function updateProgress() {
   if (currentVideoEl && !currentVideoEl.paused) {
     let elapsed = 0;
-    // sum durations of previous parts
     for (let i = 0; i < currentPartIndex; i++) {
       elapsed += partDurations[i] || 0;
     }
-    // add current part's currentTime
     elapsed += currentVideoEl.currentTime;
-
     const percent = totalDuration ? (elapsed / totalDuration) * 100 : 0;
     videoProgress.style.width = percent + "%";
   }
+
+  // ✅ Reposition buttons & progress dynamically
+  positionOverlayElements();
+
   requestAnimationFrame(updateProgress);
 }
+
 
 // ✅ Track media edges and position buttons
 function positionOverlayElements() {
