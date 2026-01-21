@@ -526,6 +526,16 @@
   border-color: var(--accent);
   color: var(--accent);
 }
+
+.media-container {
+  position: relative;       /* 🔑 anchor for buttons */
+  max-width: 100%;
+  max-height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
   
 </style>
 </head>
@@ -560,18 +570,24 @@
 <div id="categoryPanel"></div>
 
 <div class="image-wrapper">
-  <button id="saveBtn" title="Save / Unsave">💾</button>
-  <div id="soundContainer">
-    <button id="soundBtn" title="Toggle Sound">🔇</button>
-    <input type="range" id="volumeSlider" min="0" max="100" value="50">
+  <div class="media-container">
+    <button id="saveBtn" title="Save / Unsave">💾</button>
+
+    <div id="soundContainer">
+      <button id="soundBtn" title="Toggle Sound">🔇</button>
+      <input type="range" id="volumeSlider" min="0" max="100" value="50">
+    </div>
+
+    <!-- media gets injected here -->
   </div>
 
-  <img id="idolImage" src="" alt="Idol" />
   <div id="videoProgressContainer">
     <div id="videoProgress"></div>
   </div>
-
 </div>
+
+
+
 
 
 <div id="label"></div>
@@ -679,7 +695,7 @@ async function preloadPartDurations(parts) {
 async function displayUrl(urls, folder, pushHist = true) {
   if (!urls) return;
 
-  const wrapper = document.querySelector(".image-wrapper");
+  const wrapper = document.querySelector(".media-container");
 
   // Remove old media
   const oldMedia = wrapper.querySelector("img, video");
