@@ -705,6 +705,11 @@ async function displayUrl(urls, folder, pushHist = true) {
     media.style.objectFit = "contain";
     media.style.borderRadius = "16px";
 
+     // ✅ Start button positioning only after metadata loaded
+    media.onloadedmetadata = () => {
+      requestAnimationFrame(positionButtons);
+    };
+
     currentVideoEl = media;
     videoProgressContainer.style.display = "block";
     updateSoundIcon?.();
@@ -730,6 +735,10 @@ async function displayUrl(urls, folder, pushHist = true) {
   }
 
   wrapper.appendChild(media);
+
+  media.onload = () => {
+    requestAnimationFrame(positionButtons);
+  };
 
   labelEl.textContent = folder || "";
 
@@ -1323,42 +1332,54 @@ function positionButtons() {
   const media = wrapper.querySelector("img, video");
   if (!media) return;
 
-  // Get wrapper dimensions
+  let mediaWidth, mediaHeight;
+
+  if (media.tagName.toLowerCase() === "video") {
+    // ✅ Use videoWidth/videoHeight if available
+    if (!media.videoWidth || !media.videoHeight) {
+      // metadata not loaded yet, try again next frame
+      requestAnimationFrame(positionButtons);
+      return;
+    }
+    mediaWidth = media.videoWidth;
+    mediaHeight = media.videoHeight;
+  } else {
+    // image
+    mediaWidth = media.naturalWidth;
+    mediaHeight = media.naturalHeight;
+  }
+
   const wrapperWidth = wrapper.clientWidth;
   const wrapperHeight = wrapper.clientHeight;
 
-  // Media's natural aspect ratio
-  const mediaAspect = media.videoWidth
-    ? media.videoWidth / media.videoHeight
-    : media.naturalWidth / media.naturalHeight;
-
+  const mediaAspect = mediaWidth / mediaHeight;
   const wrapperAspect = wrapperWidth / wrapperHeight;
 
   let displayedWidth, displayedHeight;
 
   if (mediaAspect > wrapperAspect) {
-    // Media is wider than wrapper → letterbox vertically
+    // letterbox vertically
     displayedWidth = wrapperWidth;
     displayedHeight = wrapperWidth / mediaAspect;
   } else {
-    // Media is taller than wrapper → pillarbox horizontally
+    // pillarbox horizontally
     displayedHeight = wrapperHeight;
     displayedWidth = wrapperHeight * mediaAspect;
   }
 
-  // Compute offsets (centered in wrapper)
   const offsetX = (wrapperWidth - displayedWidth) / 2;
   const offsetY = (wrapperHeight - displayedHeight) / 2;
 
-  // ✅ Set buttons relative to media edges
-  saveBtn.style.left = `${offsetX + 8}px`; // left + padding
+  // ✅ position buttons relative to media edges
+  saveBtn.style.left = `${offsetX + 8}px`;
   saveBtn.style.top = `${offsetY + 8}px`;
 
-  soundContainer.style.left = `${offsetX + displayedWidth - soundContainer.offsetWidth - 8}px`; // right edge
+  soundContainer.style.left = `${offsetX + displayedWidth - soundContainer.offsetWidth - 8}px`;
   soundContainer.style.top = `${offsetY + 8}px`;
 
   requestAnimationFrame(positionButtons);
 }
+
 
 
 // Click-to-seek functionality (flicker-free)
