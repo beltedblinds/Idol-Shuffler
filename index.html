@@ -1319,24 +1319,43 @@ function updateProgress() {
 
 // ✅ Track media edges and position buttons
 function positionButtons() {
-  const media = document.querySelector(".image-wrapper img, .image-wrapper video");
+  const wrapper = document.querySelector(".image-wrapper");
+  const media = wrapper.querySelector("img, video");
   if (!media) return;
 
-  const mediaRect = media.getBoundingClientRect();
-  const wrapper = document.querySelector(".image-wrapper");
-  const wrapperRect = wrapper.getBoundingClientRect();
+  // Get wrapper dimensions
+  const wrapperWidth = wrapper.clientWidth;
+  const wrapperHeight = wrapper.clientHeight;
 
-  // ✅ Media edges relative to wrapper
-  const left = mediaRect.left - wrapperRect.left;
-  const right = mediaRect.right - wrapperRect.left;
-  const top = mediaRect.top - wrapperRect.top;
+  // Media's natural aspect ratio
+  const mediaAspect = media.videoWidth
+    ? media.videoWidth / media.videoHeight
+    : media.naturalWidth / media.naturalHeight;
 
-  // Position buttons inside wrapper
-  saveBtn.style.left = `${left + 8}px`; // 8px padding from media
-  saveBtn.style.top = `${top + 8}px`;
+  const wrapperAspect = wrapperWidth / wrapperHeight;
 
-  soundContainer.style.left = `${right - soundContainer.offsetWidth - 8}px`;
-  soundContainer.style.top = `${top + 8}px`;
+  let displayedWidth, displayedHeight;
+
+  if (mediaAspect > wrapperAspect) {
+    // Media is wider than wrapper → letterbox vertically
+    displayedWidth = wrapperWidth;
+    displayedHeight = wrapperWidth / mediaAspect;
+  } else {
+    // Media is taller than wrapper → pillarbox horizontally
+    displayedHeight = wrapperHeight;
+    displayedWidth = wrapperHeight * mediaAspect;
+  }
+
+  // Compute offsets (centered in wrapper)
+  const offsetX = (wrapperWidth - displayedWidth) / 2;
+  const offsetY = (wrapperHeight - displayedHeight) / 2;
+
+  // ✅ Set buttons relative to media edges
+  saveBtn.style.left = `${offsetX + 8}px`; // left + padding
+  saveBtn.style.top = `${offsetY + 8}px`;
+
+  soundContainer.style.left = `${offsetX + displayedWidth - soundContainer.offsetWidth - 8}px`; // right edge
+  soundContainer.style.top = `${offsetY + 8}px`;
 
   requestAnimationFrame(positionButtons);
 }
