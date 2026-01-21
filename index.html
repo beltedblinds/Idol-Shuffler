@@ -207,9 +207,6 @@
   }
 
   #saveBtn {
-    position: absolute;
-    top: 12px;
-    left: 12px;
     z-index: 2;
     background: rgba(0, 0, 0, 0.55);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -236,9 +233,6 @@
   }
 
   #soundContainer {
-  position: absolute;
-  top: 12px;
-  right: 12px;
   display: flex;
   align-items: center;
   gap: 6px; /* gap is optional now */
@@ -1321,6 +1315,29 @@ function updateProgress() {
   requestAnimationFrame(updateProgress);
 }
 
+// ✅ Track media edges and position buttons
+function positionButtons() {
+  const media = document.querySelector(".image-wrapper img, .image-wrapper video");
+  if (!media) return;
+
+  const rect = media.getBoundingClientRect();
+  const wrapperRect = document.querySelector(".image-wrapper").getBoundingClientRect();
+
+  // Media edges relative to wrapper
+  const left = rect.left - wrapperRect.left;
+  const right = rect.right - wrapperRect.left;
+  const top = rect.top - wrapperRect.top;
+
+  // Adjust buttons
+  saveBtn.style.left = `${left + 12}px`; // 12px padding from media edge
+  saveBtn.style.top = `${top + 12}px`;
+
+  soundContainer.style.left = `${right - soundContainer.offsetWidth - 12}px`; // 12px padding from media edge
+  soundContainer.style.top = `${top + 12}px`;
+
+  requestAnimationFrame(positionButtons);
+}
+
 
 // Click-to-seek functionality (flicker-free)
 videoProgressContainer.addEventListener("click", e => {
@@ -1370,6 +1387,7 @@ videoProgressContainer.addEventListener("click", e => {
 
 
 requestAnimationFrame(updateProgress);
+requestAnimationFrame(positionButtons);
 
 
 loadSaved();
