@@ -526,15 +526,6 @@
   border-color: var(--accent);
   color: var(--accent);
 }
-
-.media-container {
-  position: relative;       /* 🔑 anchor for buttons */
-  max-width: 100%;
-  max-height: 100%;
-  display: inline-block;    /* ✅ shrink-wrap to media size */
-}
-
-
   
 </style>
 </head>
@@ -569,24 +560,18 @@
 <div id="categoryPanel"></div>
 
 <div class="image-wrapper">
-  <div class="media-container">
-    <button id="saveBtn" title="Save / Unsave">💾</button>
-
-    <div id="soundContainer">
-      <button id="soundBtn" title="Toggle Sound">🔇</button>
-      <input type="range" id="volumeSlider" min="0" max="100" value="50">
-    </div>
-
-    <!-- media gets injected here -->
+  <button id="saveBtn" title="Save / Unsave">💾</button>
+  <div id="soundContainer">
+    <button id="soundBtn" title="Toggle Sound">🔇</button>
+    <input type="range" id="volumeSlider" min="0" max="100" value="50">
   </div>
 
+  <img id="idolImage" src="" alt="Idol" />
   <div id="videoProgressContainer">
     <div id="videoProgress"></div>
   </div>
+
 </div>
-
-
-
 
 
 <div id="label"></div>
@@ -694,7 +679,7 @@ async function preloadPartDurations(parts) {
 async function displayUrl(urls, folder, pushHist = true) {
   if (!urls) return;
 
-  const wrapper = document.querySelector(".media-container");
+  const wrapper = document.querySelector(".image-wrapper");
 
   // Remove old media
   const oldMedia = wrapper.querySelector("img, video");
@@ -719,13 +704,10 @@ async function displayUrl(urls, folder, pushHist = true) {
     media.muted = !soundEnabled;
     media.volume = globalVolume;
     media.playsInline = true;
-    media.style.maxWidth = "100%";
-    media.style.maxHeight = "100%";
-    media.style.width = "auto";
-    media.style.height = "auto";
+    media.style.width = "100%";
+    media.style.height = "100%";
     media.style.objectFit = "contain";
     media.style.borderRadius = "16px";
-
 
     currentVideoEl = media;
     videoProgressContainer.style.display = "block";
@@ -742,10 +724,8 @@ async function displayUrl(urls, folder, pushHist = true) {
     // Image or GIF
     media = document.createElement("img");
     media.src = multipartParts[0];
-    media.style.maxWidth = "100%";
-    media.style.maxHeight = "100%";
-    media.style.width = "auto";
-    media.style.height = "auto";
+    media.style.width = "100%";
+    media.style.height = "100%";
     media.style.objectFit = "contain";
     media.style.borderRadius = "16px";
     media.style.transition = "opacity 0.3s ease-in-out";
