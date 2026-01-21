@@ -211,6 +211,10 @@
     top: 12px;
     left: 12px;
     z-index: 2;
+    transform: translate(
+      calc((100% - var(--media-width, 100%)) / 2),
+      calc((100% - var(--media-height, 100%)) / 2)
+    );
     background: rgba(0, 0, 0, 0.55);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: #fff;
@@ -225,6 +229,7 @@
     transition: all 0.2s ease;
   }
 
+
   #saveBtn.saved {
     color: var(--accent);
     background: rgba(255, 123, 203, 0.2);
@@ -236,18 +241,22 @@
   }
 
   #soundContainer {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px; /* gap is optional now */
-  width: auto;
-  background: rgba(0,0,0,0.55);
-  border-radius: 50px;
-  padding: 4px;
-  z-index: 2;
-}
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    transform: translate(
+      calc(-(100% - var(--media-width, 100%)) / 2),
+      calc((100% - var(--media-height, 100%)) / 2)
+    );
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: auto;
+    background: rgba(0,0,0,0.55);
+    border-radius: 50px;
+    padding: 4px;
+    z-index: 2;
+  }
 
 /* slider hidden by default */
 #volumeSlider {
@@ -526,6 +535,22 @@
   border-color: var(--accent);
   color: var(--accent);
 }
+
+.media-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* media defines the anchor size */
+.media-anchor img,
+.media-anchor video {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
   
 </style>
 </head>
@@ -566,12 +591,14 @@
     <input type="range" id="volumeSlider" min="0" max="100" value="50">
   </div>
 
-  <img id="idolImage" src="" alt="Idol" />
+  <div class="media-anchor"></div>
   <div id="videoProgressContainer">
     <div id="videoProgress"></div>
   </div>
 
 </div>
+
+
 
 
 <div id="label"></div>
@@ -679,7 +706,7 @@ async function preloadPartDurations(parts) {
 async function displayUrl(urls, folder, pushHist = true) {
   if (!urls) return;
 
-  const wrapper = document.querySelector(".image-wrapper");
+  const wrapper = document.querySelector(".media-anchor");
 
   // Remove old media
   const oldMedia = wrapper.querySelector("img, video");
