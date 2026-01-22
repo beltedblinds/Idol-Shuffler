@@ -1521,8 +1521,10 @@ requestAnimationFrame(positionOverlayElements);
 
 
 loadSaved();
-loadDates(); // 🕒 load dates before filtering
 loadCatalog();
+loadCatalog().then(() => {
+  loadDates();  // ✅ load commit/upload dates for date filtering
+});
 loadCategories();
 updateSoundIcon(); // ✅ initialize sound icon on load
   
