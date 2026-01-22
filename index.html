@@ -583,15 +583,6 @@ const MEDIA_URL_02 = "https://raw.githubusercontent.com/beltedblinds/Idol-Catego
 const MEDIA_URL_03 = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links_03.txt";
 const MEDIA_URL_04 = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links_04.txt";
 
-const DATES_URLS = [
-  "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_dates_01.txt",
-  "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_dates_02.txt",
-  "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_dates_03.txt",
-  "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_dates_04.txt"
-];
-
-
-
   
 let catalog = [];
 let filteredCatalog = [];
@@ -613,7 +604,6 @@ let multipartParts = [];    // ✅ array of URLs for current video
 let currentPartIndex = 0;   // ✅ index of the part currently playing
 let totalDuration = 0;      // ✅ sum of durations of all parts
 let partDurations = [];     // ✅ durations of each part
-let datesMap = {};  // { "relative/path.jpg": "2025-12-08T14:22:33Z" }
 
 
 
@@ -661,26 +651,6 @@ function parseCatalogText(text) {
   }).filter(e => e && e.folder && e.raw && e.thumb)
     .sort((a,b) => a.folder.localeCompare(b.folder));
 }
-
-async function loadDates() {
-  try {
-    const responses = await Promise.all(DATES_URLS.map(url => fetch(url)));
-    const texts = await Promise.all(responses.map(r => r.text()));
-
-    datesMap = {}; // reset
-    texts.forEach(text => {
-      text.split("\n").map(l => l.trim()).filter(Boolean).forEach(line => {
-        const [relPath, date] = line.split(",").map(p => p.trim());
-        if (relPath && date) datesMap[relPath] = date;
-      });
-    });
-
-    console.log("✅ Loaded commit dates", datesMap);
-  } catch (e) {
-    console.error("Failed to load dates", e);
-  }
-}
-
 
 // 🛠️ Preload durations for all parts of a multipart video
 async function preloadPartDurations(parts) {
@@ -1288,24 +1258,6 @@ async function loadCatalog() {
     const combined = t1 + "\n" + t2 + "\n" + t3 + "\n" + t4;
     catalog = parseCatalogText(combined);
 
-    // Attach commit dates dynamically
-    catalog.forEach(item => {
-      item.date = item.raw
-        .map(url => {
-          // convert raw URL to relative path
-          try {
-            const urlObj = new URL(url);
-            const pathParts = urlObj.pathname.split("/").slice(4); // skip /user/repo/main/
-            return pathParts.join("/");
-          } catch {
-            return url;
-          }
-        })
-        .map(p => datesMap[p] || "")
-        .join("; "); // join multiple parts for multipart videos
-    });
-
-
 
     filteredCatalog = catalog.slice();
     const allIdols = [...new Set(catalog.map(it => it.folder))];
@@ -1493,8 +1445,6 @@ requestAnimationFrame(positionOverlayElements);
 
 
 loadSaved();
-await loadDates();   // ✅ make sure dates are loaded first
-await loadCatalog();
 loadCatalog();
 loadCategories();
 updateSoundIcon(); // ✅ initialize sound icon on load
