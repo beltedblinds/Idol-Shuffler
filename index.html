@@ -536,6 +536,15 @@
   <!-- 🎥 Video Only Toggle -->
   <button id="videoOnlyBtn" title="Video Only">🎥</button>
 
+  <select id="dateFilter" style="margin-left:8px; padding:6px 10px; border-radius:8px; border:1px solid #333; background:var(--card); color:var(--text);">
+    <option value="">All Dates</option>
+    <option value="1d">Last 1 day</option>
+    <option value="7d">Last 1 week</option>
+    <option value="30d">Last 1 month</option>
+    <option value="365d">Last 1 year</option>
+  </select>
+
+
   <div id="suggestions" hidden></div>
 </div>
 
@@ -583,6 +592,12 @@ const MEDIA_URL_02 = "https://raw.githubusercontent.com/beltedblinds/Idol-Catego
 const MEDIA_URL_03 = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links_03.txt";
 const MEDIA_URL_04 = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links_04.txt";
 
+const DATES_URL_01 = "https://raw.githubusercontent.com/beltedblinds/idols-media-01/main/idol_gallery_dates_01.txt";
+const DATES_URL_02 = "https://raw.githubusercontent.com/beltedblinds/idols-media-02/main/idol_gallery_dates_02.txt";
+const DATES_URL_03 = "https://raw.githubusercontent.com/beltedblinds/idols-media-03/main/idol_gallery_dates_03.txt";
+const DATES_URL_04 = "https://raw.githubusercontent.com/beltedblinds/idols-media-04/main/idol_gallery_dates_04.txt";
+
+
   
 let catalog = [];
 let filteredCatalog = [];
@@ -629,6 +644,10 @@ const idolButtonsEl = document.getElementById("idolButtons");
 const soundBtn = document.getElementById("soundBtn");
 const videoProgressContainer = document.getElementById("videoProgressContainer");
 const videoProgress = document.getElementById("videoProgress");
+
+const dateFilterSelect = document.getElementById("dateFilter");
+let currentDateFilter = ""; // e.g., "1d", "7d", "30d", "365d"
+
 
 
 /* Parser and functions (same as before) */
@@ -1219,6 +1238,15 @@ function applyFilters() {
   const hasSearch = !!searchTerm;
   const hasIdol = !!idolFilter;
   const hasCat = !!currentCategoryFilter;
+  
+  // 🕒 Prepare date filter
+  const now = new Date();
+  let cutoff = null;
+  if(currentDateFilter) {
+    const days = parseInt(currentDateFilter.replace("d",""));
+    cutoff = new Date(now.getTime() - days*24*60*60*1000);
+  }
+
 
   filteredCatalog = catalog.filter(it => {
     const isVideo = /\.(mp4|webm|mov)$/i.test(it.raw || it.url);
@@ -1230,7 +1258,19 @@ function applyFilters() {
       c => c.toLowerCase() === currentCategoryFilter?.toLowerCase()
     ));
 
-    return matchVideo && matchSearch && matchIdol && matchCat;
+    const isVideo = /\.(mp4|webm|mov)$/i.test(it.raw || it.url);
+    const matchVideo = !videoOnlyMode || isVideo;
+    const matchSearch = !hasSearch || it.folder.toLowerCase().includes(searchTerm);
+    const matchIdol = !hasIdol || it.folder.toLowerCase().includes(idolFilter);
+    const matchCat = !hasCat || (it.categories && it.categories.some(
+      c => c.toLowerCase() === currentCategoryFilter?.toLowerCase()
+    ));
+    let matchDate = true;
+    if(cutoff) {
+      const date = mediaDates[it.raw?.[0] || it.raw || it.url];
+      matchDate = date ? date >= cutoff : false;
+    }
+    return matchVideo && matchSearch && matchIdol && matchCat && matchDate;
   });
 
   if (catalogOpen) renderCatalogThumbnails();
@@ -1272,6 +1312,29 @@ async function loadCatalog() {
   }
 }
 
+let mediaDates = {}; // { "107865-3bfec5b175d898b8accdbc2b7955b429.webp": Date }
+
+async function loadDates() {
+  try {
+    const [r1, r2, r3, r4] = await Promise.all([
+      fetch(DATES_URL_01),
+      fetch(DATES_URL_02),
+      fetch(DATES_URL_03),
+      fetch(DATES_URL_04)
+    ]);
+    const [t1, t2, t3, t4] = await Promise.all([r1.text(), r2.text(), r3.text(), r4.text()]);
+    const combined = t1 + "\n" + t2 + "\n" + t3 + "\n" + t4;
+
+    combined.split("\n").map(l => l.trim()).filter(Boolean).forEach(line => {
+      const [filename, dateStr] = line.split(",").map(p => p.trim());
+      if (filename && dateStr) mediaDates[filename] = new Date(dateStr);
+    });
+  } catch(e) {
+    console.error("Failed to load media dates", e);
+  }
+}
+
+
 
 
 
@@ -1294,6 +1357,15 @@ videoOnlyBtn.onclick = () => {
   applyFilters();
   showRandom();
 };
+
+// 🕒 Date filter dropdown
+const dateFilterEl = document.getElementById("dateFilter");
+dateFilterEl.addEventListener("change", e => {
+  currentDateFilter = e.target.value;
+  applyFilters();
+  showRandom();
+});
+
 
 
 
@@ -1390,7 +1462,11 @@ function positionOverlayElements() {
   videoProgressContainer.style.width = `${displayedWidth}px`;
 }
 
-
+dateFilterSelect.addEventListener("change", () => {
+  currentDateFilter = dateFilterSelect.value;
+  applyFilters();
+  showRandom();
+});
 
 
 // Click-to-seek functionality (flicker-free)
@@ -1445,6 +1521,7 @@ requestAnimationFrame(positionOverlayElements);
 
 
 loadSaved();
+loadDates(); // 🕒 load dates before filtering
 loadCatalog();
 loadCategories();
 updateSoundIcon(); // ✅ initialize sound icon on load
