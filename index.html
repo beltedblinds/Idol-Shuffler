@@ -547,15 +547,6 @@
   <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
   <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog</span></div>
   <div class="toggle" id="categoryToggle"><span id="categoryLabel">Categories</span></div>
-  <div class="toggle">
-    <select id="dateFilterSelect" style="padding: 10px; border-radius: 8px; border:1px solid #333; background: var(--card); color: var(--text); font-size:14px; cursor:pointer;">
-      <option value="">All Dates</option>
-      <option value="1d">Last 1 Day</option>
-      <option value="7d">Last 1 Week</option>
-      <option value="30d">Last 1 Month</option>
-      <option value="365d">Last 1 Year</option>
-    </select>
-  </div>
 </div>
 
 <!-- 🩷 Idol buttons now floating on left -->
@@ -591,17 +582,6 @@ const MEDIA_URL = "https://raw.githubusercontent.com/beltedblinds/Idol-Categoriz
 const MEDIA_URL_02 = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links_02.txt";
 const MEDIA_URL_03 = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links_03.txt";
 const MEDIA_URL_04 = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links_04.txt";
-
-const DATE_URLS = [
-  "https://raw.githubusercontent.com/beltedblinds/idols-media-01/main/idol_gallery_dates_01.txt",
-  "https://raw.githubusercontent.com/beltedblinds/idols-media-02/main/idol_gallery_dates_02.txt",
-  "https://raw.githubusercontent.com/beltedblinds/idols-media-03/main/idol_gallery_dates_03.txt",
-  "https://raw.githubusercontent.com/beltedblinds/idols-media-04/main/idol_gallery_dates_04.txt"
-];
-
-let mediaDates = {}; // media URL -> ISO string
-let currentDateFilter = ""; // "1d", "7d", "30d", "365d"
-
 
   
 let catalog = [];
@@ -671,24 +651,6 @@ function parseCatalogText(text) {
   }).filter(e => e && e.folder && e.raw && e.thumb)
     .sort((a,b) => a.folder.localeCompare(b.folder));
 }
-
-async function loadMediaDates() {
-  try {
-    const responses = await Promise.all(DATE_URLS.map(url => fetch(url)));
-    const texts = await Promise.all(responses.map(r => r.text()));
-
-    texts.forEach(text => {
-      const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-      lines.forEach(line => {
-        const [url, dateStr] = line.split(",").map(p => p.trim());
-        if (url && dateStr) mediaDates[url] = new Date(dateStr);
-      });
-    });
-  } catch (e) {
-    console.error("Failed to load media dates:", e);
-  }
-}
-
 
 // 🛠️ Preload durations for all parts of a multipart video
 async function preloadPartDurations(parts) {
@@ -1260,29 +1222,16 @@ function applyFilters() {
 
   filteredCatalog = catalog.filter(it => {
     const isVideo = /\.(mp4|webm|mov)$/i.test(it.raw || it.url);
+
     const matchVideo = !videoOnlyMode || isVideo;
     const matchSearch = !hasSearch || it.folder.toLowerCase().includes(searchTerm);
     const matchIdol = !hasIdol || it.folder.toLowerCase().includes(idolFilter);
     const matchCat = !hasCat || (it.categories && it.categories.some(
       c => c.toLowerCase() === currentCategoryFilter?.toLowerCase()
     ));
-  
-    // ✅ Date filter
-    let matchDate = true;
-    if (currentDateFilter) {
-      const now = new Date();
-      const limitMap = { "1d": 1, "7d": 7, "30d": 30, "365d": 365 };
-      const days = limitMap[currentDateFilter];
-      const mediaUrls = Array.isArray(it.raw) ? it.raw : [it.raw];
-      matchDate = mediaUrls.some(u => {
-        const date = mediaDates[u];
-        return date && ((now - date) / (1000*60*60*24)) <= days;
-      });
-    }
-  
-    return matchVideo && matchSearch && matchIdol && matchCat && matchDate;
-  });
 
+    return matchVideo && matchSearch && matchIdol && matchCat;
+  });
 
   if (catalogOpen) renderCatalogThumbnails();
 }
@@ -1441,13 +1390,7 @@ function positionOverlayElements() {
   videoProgressContainer.style.width = `${displayedWidth}px`;
 }
 
-const dateFilterSelect = document.getElementById("dateFilterSelect");
-dateFilterSelect.addEventListener("change", e => {
-  currentDateFilter = e.target.value;
-  seenImages.clear();
-  applyFilters();
-  showRandom();
-});
+
 
 
 // Click-to-seek functionality (flicker-free)
@@ -1504,7 +1447,6 @@ requestAnimationFrame(positionOverlayElements);
 loadSaved();
 loadCatalog();
 loadCategories();
-loadMediaDates();
 updateSoundIcon(); // ✅ initialize sound icon on load
   
 </script>
