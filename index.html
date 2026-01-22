@@ -547,6 +547,16 @@
   <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
   <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog</span></div>
   <div class="toggle" id="categoryToggle"><span id="categoryLabel">Categories</span></div>
+
+  <!-- Date Filter Dropdown -->
+  <select id="dateFilter" class="toggle" title="Filter by Date">
+    <option value="">All Dates</option>
+    <option value="1d">Last 1 day</option>
+    <option value="7d">Last 7 days</option>
+    <option value="30d">Last 30 days</option>
+    <option value="365d">Last 1 year</option>
+  </select>
+
 </div>
 
 <!-- 🩷 Idol buttons now floating on left -->
@@ -582,6 +592,12 @@ const MEDIA_URL = "https://raw.githubusercontent.com/beltedblinds/Idol-Categoriz
 const MEDIA_URL_02 = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links_02.txt";
 const MEDIA_URL_03 = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links_03.txt";
 const MEDIA_URL_04 = "https://raw.githubusercontent.com/beltedblinds/Idol-Categorizer/main/idol_gallery_links_04.txt";
+
+const DATE_URL_01 = "https://raw.githubusercontent.com/beltedblinds/idols-media-01/main/idol_gallery_dates_01.txt";
+const DATE_URL_02 = "https://raw.githubusercontent.com/beltedblinds/idols-media-02/main/idol_gallery_dates_02.txt";
+const DATE_URL_03 = "https://raw.githubusercontent.com/beltedblinds/idols-media-03/main/idol_gallery_dates_03.txt";
+const DATE_URL_04 = "https://raw.githubusercontent.com/beltedblinds/idols-media-04/main/idol_gallery_dates_04.txt";
+
 
   
 let catalog = [];
@@ -630,6 +646,14 @@ const soundBtn = document.getElementById("soundBtn");
 const videoProgressContainer = document.getElementById("videoProgressContainer");
 const videoProgress = document.getElementById("videoProgress");
 
+const dateFilterEl = document.getElementById("dateFilter");
+dateFilterEl.addEventListener("change", () => {
+  seenImages.clear(); // reset seen pool
+  applyFilters();
+  showRandom();
+});
+
+
 
 /* Parser and functions (same as before) */
 function parseCatalogText(text) {
@@ -651,6 +675,33 @@ function parseCatalogText(text) {
   }).filter(e => e && e.folder && e.raw && e.thumb)
     .sort((a,b) => a.folder.localeCompare(b.folder));
 }
+
+let mediaDates = {}; // key: media URL, value: Date object
+
+async function loadMediaDates() {
+  try {
+    const responses = await Promise.all([
+      fetch(DATE_URL_01),
+      fetch(DATE_URL_02),
+      fetch(DATE_URL_03),
+      fetch(DATE_URL_04)
+    ]);
+    const texts = await Promise.all(responses.map(r => r.text()));
+
+    texts.forEach(text => {
+      const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+      lines.forEach(line => {
+        const [url, dateStr] = line.split(",").map(s => s.trim());
+        if (url && dateStr) {
+          mediaDates[url] = new Date(dateStr);
+        }
+      });
+    });
+  } catch (e) {
+    console.error("Failed to load media dates", e);
+  }
+}
+
 
 // 🛠️ Preload durations for all parts of a multipart video
 async function preloadPartDurations(parts) {
@@ -761,8 +812,10 @@ function getCurrentPool() {
 }
 
 function showRandom() {
-  const pool = getCurrentPool();
+  let pool = getCurrentPool();
+  pool = applyDateFilter(pool); // ✅ filter by date
   if (!pool.length) return;
+
   if (seenImages.size >= pool.length) seenImages.clear();
   const unseen = pool.filter(item => !seenImages.has(item.raw || item.url));
   const item = unseen[Math.floor(Math.random() * unseen.length)];
@@ -1222,20 +1275,44 @@ function applyFilters() {
 
   filteredCatalog = catalog.filter(it => {
     const isVideo = /\.(mp4|webm|mov)$/i.test(it.raw || it.url);
-
     const matchVideo = !videoOnlyMode || isVideo;
     const matchSearch = !hasSearch || it.folder.toLowerCase().includes(searchTerm);
     const matchIdol = !hasIdol || it.folder.toLowerCase().includes(idolFilter);
     const matchCat = !hasCat || (it.categories && it.categories.some(
       c => c.toLowerCase() === currentCategoryFilter?.toLowerCase()
     ));
-
+  
     return matchVideo && matchSearch && matchIdol && matchCat;
   });
-
+  
+  // ✅ Apply date filter here
+  filteredCatalog = applyDateFilter(filteredCatalog);
+  
   if (catalogOpen) renderCatalogThumbnails();
+
 }
 
+function applyDateFilter(pool) {
+  const sel = document.getElementById("dateFilter").value;
+  if (!sel) return pool; // no filter
+
+  const now = new Date();
+  let cutoff = null;
+
+  switch(sel) {
+    case "1d": cutoff = new Date(now - 1*24*60*60*1000); break;
+    case "7d": cutoff = new Date(now - 7*24*60*60*1000); break;
+    case "30d": cutoff = new Date(now - 30*24*60*60*1000); break;
+    case "365d": cutoff = new Date(now - 365*24*60*60*1000); break;
+  }
+
+  if (!cutoff) return pool;
+
+  return pool.filter(item => {
+    const date = mediaDates[item.raw?.[0] || item.raw || item.url];
+    return date && date >= cutoff;
+  });
+}
 
 
 
@@ -1447,6 +1524,7 @@ requestAnimationFrame(positionOverlayElements);
 loadSaved();
 loadCatalog();
 loadCategories();
+await loadMediaDates();
 updateSoundIcon(); // ✅ initialize sound icon on load
   
 </script>
