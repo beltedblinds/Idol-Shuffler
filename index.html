@@ -434,35 +434,6 @@
     border-color: var(--accent);
   }
 
-#positionsPanel {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 0;
-  background: #111;
-  padding: 0;
-  overflow: hidden;
-  box-sizing: border-box;
-  z-index: 997;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  transition: left 0.3s ease, width 0.3s ease;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-#positionsPanel.open {
-  width: 160px;
-  padding: 10px;
-  border-right: 1px solid #333;
-  overflow-y: auto;
-  visibility: visible;
-  pointer-events: auto;
-}
-
-
 /* 🌸 Idol buttons (left side) */
 #idolButtons {
   position: fixed;
@@ -576,7 +547,6 @@
   <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
   <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog</span></div>
   <div class="toggle" id="categoryToggle"><span id="categoryLabel">Categories</span></div>
-  <div class="toggle" id="positionsToggle"><span>Positions</span></div>
 </div>
 
 <!-- 🩷 Idol buttons now floating on left -->
@@ -584,10 +554,6 @@
 
 <!-- 🌸 Category panel (slides out beside idol buttons) -->
 <div id="categoryPanel"></div>
-
-<!-- 🧭 Positions panel (visual-only split) -->
-<div id="positionsPanel"></div>
-
 
 <div class="image-wrapper">
   <button id="saveBtn" title="Save / Unsave">💾</button>
@@ -638,7 +604,7 @@ let multipartParts = [];    // ✅ array of URLs for current video
 let currentPartIndex = 0;   // ✅ index of the part currently playing
 let totalDuration = 0;      // ✅ sum of durations of all parts
 let partDurations = [];     // ✅ durations of each part
-let positionsOpen = false;
+
 
 
 
@@ -663,9 +629,6 @@ const idolButtonsEl = document.getElementById("idolButtons");
 const soundBtn = document.getElementById("soundBtn");
 const videoProgressContainer = document.getElementById("videoProgressContainer");
 const videoProgress = document.getElementById("videoProgress");
-
-const positionsPanel = document.getElementById("positionsPanel");
-const positionsToggle = document.getElementById("positionsToggle");
 
 
 /* Parser and functions (same as before) */
@@ -785,22 +748,6 @@ async function displayUrl(urls, folder, pushHist = true) {
   if (pushHist && (!history.length || history[history.length - 1] !== currentMediaUrl)) {
     history.push(currentMediaUrl);
     historyPos = history.length - 1;
-  }
-}
-
-function togglePositions() {
-  positionsOpen = !positionsOpen;
-  positionsPanel.classList.toggle("open", positionsOpen);
-
-  if (positionsOpen) {
-    // Compute left offset: sum of open panels to the left
-    let leftOffset = 0;
-    if (idolButtonsEl.classList.contains("open")) leftOffset += 200;   // idol buttons width
-    if (categoryPanel.classList.contains("open")) leftOffset += 160;   // category panel width
-
-    positionsPanel.style.left = leftOffset + "px";
-
-    renderPositionsButtons();
   }
 }
 
@@ -1147,14 +1094,6 @@ function toggleCategories() {
     // 🩷 Reflect current search + idol filter in category panel
     const searchTerm = searchInput.value.trim().toLowerCase();
 
-    // Reposition positions panel if it’s open
-    if (positionsOpen) {
-      let leftOffset = 0;
-      if (idolButtonsEl.classList.contains("open")) leftOffset += 200;
-      if (categoryPanel.classList.contains("open")) leftOffset += 160;
-      positionsPanel.style.left = leftOffset + "px";
-    }
-
     let visibleCategories;
     if (currentIdolFilter) {
       // Show only categories of the current idol (respecting search)
@@ -1297,27 +1236,6 @@ function applyFilters() {
   if (catalogOpen) renderCatalogThumbnails();
 }
 
-function renderPositionsButtons() {
-  positionsPanel.innerHTML = "";
-
-  // 🔹 VISUAL SPLIT ONLY
-  const positionCats = categories.slice(12); // 13–18
-
-  positionCats.forEach(cat => {
-    const btn = document.createElement("button");
-    btn.className = "category-btn";
-    btn.textContent = cat;
-
-    if (currentCategoryFilter === cat) {
-      btn.classList.add("active");
-    }
-
-    btn.onclick = () => toggleCategoryFilter(cat, btn);
-    positionsPanel.appendChild(btn);
-  });
-}
-
-
 
 
 
@@ -1369,8 +1287,6 @@ soundBtn.onclick = toggleSound;
 searchBtn.onclick = () => selectFolder(searchInput.value);
 catalogToggle.onclick = toggleCatalog;
 categoryToggle.onclick = toggleCategories;
-positionsToggle.onclick = togglePositions;
-
 
 videoOnlyBtn.onclick = () => {
   videoOnlyMode = !videoOnlyMode;
