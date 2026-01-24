@@ -419,6 +419,37 @@
   pointer-events: auto;
 }
 
+/* 🧍 Positions Panel (right of Categories) */
+#positionPanel {
+  position: fixed;
+  top: 0;
+  left: 160px; /* category width */
+  height: 100%;
+  width: 0;
+  background: #111;
+  border-right: none;
+  padding: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  z-index: 997;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: left 0.3s ease, width 0.3s ease;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#positionPanel.open {
+  width: 160px;
+  padding: 10px;
+  border-right: 1px solid #333;
+  overflow-y: auto;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+
 
   .catalog-thumb {
     width: 100%;
@@ -547,6 +578,7 @@
   <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
   <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog</span></div>
   <div class="toggle" id="categoryToggle"><span id="categoryLabel">Categories</span></div>
+  <div class="toggle" id="positionToggle"><span id="positionLabel">Positions</span></div>
 </div>
 
 <!-- 🩷 Idol buttons now floating on left -->
@@ -554,6 +586,8 @@
 
 <!-- 🌸 Category panel (slides out beside idol buttons) -->
 <div id="categoryPanel"></div>
+<div id="positionPanel"></div>
+
 
 <div class="image-wrapper">
   <button id="saveBtn" title="Save / Unsave">💾</button>
@@ -604,6 +638,9 @@ let multipartParts = [];    // ✅ array of URLs for current video
 let currentPartIndex = 0;   // ✅ index of the part currently playing
 let totalDuration = 0;      // ✅ sum of durations of all parts
 let partDurations = [];     // ✅ durations of each part
+let mainCategories = [];   // 1–12
+let positionCategories = []; // 13–18
+
 
 
 
@@ -891,7 +928,7 @@ function handleSearch(input) {
     const allCategories = categories.filter(cat =>
       catalog.some(it => it.categories && it.categories.some(c => c === cat))
     );
-    renderCategoryButtons(allCategories);
+    renderCategoryButtons(mainCategories);
 
     return;
   }
@@ -1073,15 +1110,65 @@ let currentCategoryFilter = null;
 const categoryPanel = document.getElementById("categoryPanel");
 const categoryToggle = document.getElementById("categoryToggle");
 
+const positionPanel = document.getElementById("positionPanel");
+const positionToggle = document.getElementById("positionToggle");
+let positionOpen = false;
+let currentPositionFilter = null;
+
+
 async function loadCategories() {
   try {
     const res = await fetch(CAT_URL);
     const text = await res.text();
     categories = text.split("\n").map(l => l.trim()).filter(Boolean);
+
+    // Split categories
+    mainCategories = categories.slice(0, 12);
+    positionCategories = categories.slice(12, 18);
+
   } catch (e) {
     console.error("Failed to load categories", e);
   }
 }
+
+function togglePositions() {
+  positionOpen = !positionOpen;
+  positionPanel.classList.toggle("open", positionOpen);
+
+  // Position it beside Categories
+  if (positionOpen) {
+    const baseLeft = idolButtonsEl.classList.contains("open") ? 200 : 0;
+    positionPanel.style.left = (baseLeft + 160) + "px";
+    renderPositionButtons();
+  }
+}
+
+function renderPositionButtons() {
+  positionPanel.innerHTML = "";
+  positionCategories.forEach(pos => {
+    const btn = document.createElement("button");
+    btn.className = "category-btn";
+    btn.textContent = pos;
+    if (currentPositionFilter === pos) btn.classList.add("active");
+    btn.onclick = () => togglePositionFilter(pos, btn);
+    positionPanel.appendChild(btn);
+  });
+}
+
+function togglePositionFilter(pos, btn) {
+  if (currentPositionFilter === pos) {
+    currentPositionFilter = null;
+    btn.classList.remove("active");
+  } else {
+    currentPositionFilter = pos;
+    [...positionPanel.children].forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+  }
+
+  applyFilters();
+}
+
+
 
 function toggleCategories() {
   categoryOpen = !categoryOpen;
@@ -1219,6 +1306,8 @@ function applyFilters() {
   const hasSearch = !!searchTerm;
   const hasIdol = !!idolFilter;
   const hasCat = !!currentCategoryFilter;
+  const hasPosition = !!currentPositionFilter;
+
 
   filteredCatalog = catalog.filter(it => {
     const isVideo = /\.(mp4|webm|mov)$/i.test(it.raw || it.url);
@@ -1230,7 +1319,11 @@ function applyFilters() {
       c => c.toLowerCase() === currentCategoryFilter?.toLowerCase()
     ));
 
-    return matchVideo && matchSearch && matchIdol && matchCat;
+    const matchPosition =
+      !hasPosition || (it.categories && it.categories.includes(currentPositionFilter));
+    
+    return matchVideo && matchSearch && matchIdol && matchCat && matchPosition;
+
   });
 
   if (catalogOpen) renderCatalogThumbnails();
@@ -1263,7 +1356,7 @@ async function loadCatalog() {
     const allIdols = [...new Set(catalog.map(it => it.folder))];
     renderIdolButtons(allIdols);
     const allCategories = [...new Set(catalog.flatMap(it => it.categories))];
-    renderCategoryButtons(allCategories);
+    renderCategoryButtons(mainCategories);
 
     showRandom();
   } catch (e) {
@@ -1287,6 +1380,8 @@ soundBtn.onclick = toggleSound;
 searchBtn.onclick = () => selectFolder(searchInput.value);
 catalogToggle.onclick = toggleCatalog;
 categoryToggle.onclick = toggleCategories;
+positionToggle.onclick = togglePositions;
+
 
 videoOnlyBtn.onclick = () => {
   videoOnlyMode = !videoOnlyMode;
