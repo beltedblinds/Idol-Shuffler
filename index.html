@@ -420,6 +420,8 @@
 }
 
 
+
+
   .catalog-thumb {
     width: 100%;
     border-radius: 8px;
@@ -433,6 +435,37 @@
     transform: scale(1.03);
     border-color: var(--accent);
   }
+
+/* 🎤 Positions Panel (right of Categories) */
+#positionsPanel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0;
+  background: #111;
+  border-right: none;
+  padding: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  z-index: 997;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: left 0.3s ease, width 0.3s ease;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#positionsPanel.open {
+  width: 160px;
+  padding: 10px;
+  border-right: 1px solid #333;
+  overflow-y: auto;
+  visibility: visible;
+  pointer-events: auto;
+}
+
 
 /* 🌸 Idol buttons (left side) */
 #idolButtons {
@@ -547,6 +580,7 @@
   <div class="toggle" id="savedModeToggle"><span id="savedModeLabel">Saved Mode: Off</span></div>
   <div class="toggle" id="catalogToggle"><span id="catalogLabel">Catalog</span></div>
   <div class="toggle" id="categoryToggle"><span id="categoryLabel">Categories</span></div>
+  <div class="toggle" id="positionsToggle"><span id="positionsLabel">Positions</span></div>
 </div>
 
 <!-- 🩷 Idol buttons now floating on left -->
@@ -554,6 +588,10 @@
 
 <!-- 🌸 Category panel (slides out beside idol buttons) -->
 <div id="categoryPanel"></div>
+
+<!-- 🌸 Positions panel (slides out beside category buttons) -->
+<div id="positionsPanel"></div>
+
 
 <div class="image-wrapper">
   <button id="saveBtn" title="Save / Unsave">💾</button>
@@ -604,6 +642,8 @@ let multipartParts = [];    // ✅ array of URLs for current video
 let currentPartIndex = 0;   // ✅ index of the part currently playing
 let totalDuration = 0;      // ✅ sum of durations of all parts
 let partDurations = [];     // ✅ durations of each part
+let positionsOpen = false;
+
 
 
 
@@ -629,6 +669,9 @@ const idolButtonsEl = document.getElementById("idolButtons");
 const soundBtn = document.getElementById("soundBtn");
 const videoProgressContainer = document.getElementById("videoProgressContainer");
 const videoProgress = document.getElementById("videoProgress");
+
+const positionsPanel = document.getElementById("positionsPanel");
+const positionsToggle = document.getElementById("positionsToggle");
 
 
 /* Parser and functions (same as before) */
@@ -751,6 +794,24 @@ async function displayUrl(urls, folder, pushHist = true) {
   }
 }
 
+function getCategoryTabs() {
+  return {
+    categories: categories.slice(0, 12),   // 1–12
+    positions: categories.slice(12, 18)     // 13–18
+  };
+}
+
+function renderPositionsButtons(list) {
+  positionsPanel.innerHTML = "";
+  list.forEach(cat => {
+    const btn = document.createElement("button");
+    btn.className = "category-btn";
+    btn.textContent = cat;
+    if (currentCategoryFilter === cat) btn.classList.add("active");
+    btn.onclick = () => toggleCategoryFilter(cat, btn);
+    positionsPanel.appendChild(btn);
+  });
+}
 
 
 
@@ -891,7 +952,8 @@ function handleSearch(input) {
     const allCategories = categories.filter(cat =>
       catalog.some(it => it.categories && it.categories.some(c => c === cat))
     );
-    renderCategoryButtons(allCategories);
+    renderCategoryButtons(allCategories.slice(0, 12));
+
 
     return;
   }
@@ -1042,7 +1104,7 @@ function toggleCatalogIdol(folderName, btn) {
 
   // 🩷 Keep original order from `categories` file
   const orderedIdolCats = categories.filter(cat => idolCats.includes(cat));
-  renderCategoryButtons(orderedIdolCats);
+  renderCategoryButtons(orderedCats.slice(0, 12));
 }
 
 
@@ -1119,9 +1181,28 @@ function toggleCategories() {
       visibleCategories = categories;
     }
 
-    renderCategoryButtons(visibleCategories);
+    // 👇 Categories tab only shows categories 1–12
+    renderCategoryButtons(visibleCategories.slice(0, 12));
   }
 }
+
+function togglePositions() {
+  positionsOpen = !positionsOpen;
+  positionsPanel.classList.toggle("open", positionsOpen);
+
+  // position it to the right of Categories (and Idol buttons if open)
+  let leftOffset = 0;
+  if (idolButtonsEl.classList.contains("open")) leftOffset += 200;
+  if (categoryPanel.classList.contains("open")) leftOffset += 160;
+
+  positionsPanel.style.left = leftOffset + "px";
+
+  if (positionsOpen) {
+    const { positions } = getCategoryTabs();
+    renderPositionsButtons(positions);
+  }
+}
+
 
 
 function renderCategoryButtons(list = categories) {
@@ -1175,7 +1256,7 @@ if (currentCategoryFilter === cat) {
         (!currentIdolFilter || it.folder === currentIdolFilter)
       )
     );
-    renderCategoryButtons(visibleCats);
+    renderCategoryButtons(visibleCats.slice(0, 12));
     renderIdolButtons(visibleIdols);
   }
 
@@ -1263,7 +1344,9 @@ async function loadCatalog() {
     const allIdols = [...new Set(catalog.map(it => it.folder))];
     renderIdolButtons(allIdols);
     const allCategories = [...new Set(catalog.flatMap(it => it.categories))];
-    renderCategoryButtons(allCategories);
+    // 👇 Categories tab shows only categories 1–12
+    renderCategoryButtons(allCategories.slice(0, 12));
+
 
     showRandom();
   } catch (e) {
@@ -1287,6 +1370,8 @@ soundBtn.onclick = toggleSound;
 searchBtn.onclick = () => selectFolder(searchInput.value);
 catalogToggle.onclick = toggleCatalog;
 categoryToggle.onclick = toggleCategories;
+positionsToggle.onclick = togglePositions;
+
 
 videoOnlyBtn.onclick = () => {
   videoOnlyMode = !videoOnlyMode;
