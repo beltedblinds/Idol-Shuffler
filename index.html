@@ -793,12 +793,17 @@ function togglePositions() {
   positionsPanel.classList.toggle("open", positionsOpen);
 
   if (positionsOpen) {
-    positionsPanel.style.left =
-      idolButtonsEl.classList.contains("open") ? "200px" : "0";
+    // Compute left offset: sum of open panels to the left
+    let leftOffset = 0;
+    if (idolButtonsEl.classList.contains("open")) leftOffset += 200;   // idol buttons width
+    if (categoryPanel.classList.contains("open")) leftOffset += 160;   // category panel width
+
+    positionsPanel.style.left = leftOffset + "px";
 
     renderPositionsButtons();
   }
 }
+
 
 
 
@@ -1141,6 +1146,14 @@ function toggleCategories() {
 
     // 🩷 Reflect current search + idol filter in category panel
     const searchTerm = searchInput.value.trim().toLowerCase();
+
+    // Reposition positions panel if it’s open
+    if (positionsOpen) {
+      let leftOffset = 0;
+      if (idolButtonsEl.classList.contains("open")) leftOffset += 200;
+      if (categoryPanel.classList.contains("open")) leftOffset += 160;
+      positionsPanel.style.left = leftOffset + "px";
+    }
 
     let visibleCategories;
     if (currentIdolFilter) {
